@@ -165,9 +165,11 @@ variable "io_bridge_lambda_log_retention" {
 variable "k8s_vpc_security_group_ids" {
   description = "The security group ids for VPC in Kubernetes cluster"
   type = "list"
+  default = []
 }
 
 variable "k8s_vpc_subnet_ids" {
   description = "The subnet ids of VPC in Kubernetes cluster"
   type = "list"
+  default = []
 }
