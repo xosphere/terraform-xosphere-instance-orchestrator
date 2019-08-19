@@ -637,7 +637,7 @@ EOF
 	path = "/"
 }
 
-resource "aws_iam_role_policy" "instance_orchestrator_snapshot_creator_policy" {
+resource "aws_iam_role_policy" "instance_orchestrator_ami_cleaner_policy" {
 	name = "xosphere-instance-orchestrator-ami-cleaner-policy"
 	role = "${aws_iam_role.instance_orchestrator_ami_cleaner_role.id}"
 	policy = <<EOF
@@ -767,7 +767,7 @@ resource "aws_cloudwatch_log_group" "instance_orchestrator_dlq_handler_cloudwatc
 //IO Bridge
 
 resource "aws_lambda_function" "xosphere_io_bridge_lambda" {
-	count = length(var.k8s_vpc_security_group_ids) > 0  && length(var.k8s_vpc_subnet_ids) > 0 ? 1 : 0
+	count = "${length(var.k8s_vpc_security_group_ids) > 0  && length(var.k8s_vpc_subnet_ids) > 0 ? 1 : 0}"
 
 	s3_bucket = "xosphere-io-releases"
 	s3_key = "iobridge-lambda-0.1.0.zip"
@@ -790,7 +790,7 @@ resource "aws_lambda_function" "xosphere_io_bridge_lambda" {
 }
 
 resource "aws_lambda_permission" "xosphere_io_bridge_permission" {
-	count = length(var.k8s_vpc_security_group_ids) > 0  && length(var.k8s_vpc_subnet_ids) > 0 ? 1 : 0
+	count = "${length(var.k8s_vpc_security_group_ids) > 0  && length(var.k8s_vpc_subnet_ids) > 0 ? 1 : 0}"
 
 	action = "lambda:InvokeFunction"
 	function_name = "${aws_lambda_function.xosphere_io_bridge_lambda.function_name}"
@@ -800,7 +800,7 @@ resource "aws_lambda_permission" "xosphere_io_bridge_permission" {
 }
 
 resource "aws_iam_role" "io_bridge_lambda_role" {
-	count = length(var.k8s_vpc_security_group_ids) > 0  && length(var.k8s_vpc_subnet_ids) > 0 ? 1 : 0
+	count = "${length(var.k8s_vpc_security_group_ids) > 0  && length(var.k8s_vpc_subnet_ids) > 0 ? 1 : 0}"
 
 	assume_role_policy = <<EOF
 {
@@ -820,7 +820,7 @@ EOF
 }
 
 resource "aws_iam_role_policy" "io_bridge_lambda_policy" {
-	count = length(var.k8s_vpc_security_group_ids) > 0  && length(var.k8s_vpc_subnet_ids) > 0 ? 1 : 0
+	count = "${length(var.k8s_vpc_security_group_ids) > 0  && length(var.k8s_vpc_subnet_ids) > 0 ? 1 : 0}"
 
 	name = "xosphere-iobridge-lambda-policy"
 	role = "${aws_iam_role.io_bridge_lambda_role.id}"
@@ -847,7 +847,7 @@ EOF
 }
 
 resource "aws_cloudwatch_log_group" "io_bridge_cloudwatch_log_group" {
-	count = length(var.k8s_vpc_security_group_ids) > 0  && length(var.k8s_vpc_subnet_ids) > 0 ? 1 : 0
+	count = "${length(var.k8s_vpc_security_group_ids) > 0  && length(var.k8s_vpc_subnet_ids) > 0 ? 1 : 0}"
 
 	name = "/aws/lambda/${aws_lambda_function.xosphere_io_bridge_lambda.function_name}"
 	retention_in_days = "${var.io_bridge_lambda_log_retention}"
