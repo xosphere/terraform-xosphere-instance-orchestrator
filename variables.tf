@@ -29,7 +29,7 @@ variable "lambda_archive" {
 
 variable "lambda_memory_size" {
   description = "Memory size allocated to Lambda"
-  default = 512
+  default = 1024
 }
 
 variable "lambda_timeout" {
