@@ -49,38 +49,38 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
   name = "xosphere-terminator-policy"
   policy = <<EOF
 {
-	"Version": "2012-10-17",
-	"Statement": [
-		{
-			"Action": [
-				"autoscaling:DescribeAutoScalingGroups",
-              	"autoscaling:DescribeNotificationConfigurations",
-              	"autoscaling:DetachInstances",
-              	"ec2:CreateTags",
-              	"ec2:DescribeAddresses",
-              	"ecs:DescribeContainerInstances",
-              	"ec2:DescribeInstances",
-              	"ec2:DescribeInstanceAttribute",
-              	"ec2:DescribeInstanceCreditSpecifications",
-				"ec2:DescribeVolumes",
-              	"ecs:ListClusters",
-              	"ecs:ListContainerInstances",
-              	"ecs:UpdateContainerInstancesState",
-				"iam:PassRole",
-              	"iam:PutRolePolicy",
-              	"iam:CreateServiceLinkedRole",
-				"logs:CreateLogGroup",
-              	"logs:CreateLogStream",
-              	"logs:PutLogEvents",
-              	"sns:Publish",
-              	"sqs:SendMessage",
-              	"s3:GetObject",
-              	"s3:PutObject"
-			],
-			"Effect": "Allow",
-			"Resource": "*"
-		}
-	]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+	  "Action": [
+	    "autoscaling:DescribeAutoScalingGroups",
+        "autoscaling:DescribeNotificationConfigurations",
+        "autoscaling:DetachInstances",
+        "ec2:CreateTags",
+        "ec2:DescribeAddresses",
+        "ecs:DescribeContainerInstances",
+        "ec2:DescribeInstances",
+        "ec2:DescribeInstanceAttribute",
+        "ec2:DescribeInstanceCreditSpecifications",
+		"ec2:DescribeVolumes",
+        "ecs:ListClusters",
+        "ecs:ListContainerInstances",
+        "ecs:UpdateContainerInstancesState",
+		"iam:PassRole",
+        "iam:PutRolePolicy",
+        "iam:CreateServiceLinkedRole",
+		"logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "sns:Publish",
+        "sqs:SendMessage",
+        "s3:GetObject",
+        "s3:PutObject"
+      ],
+	  "Effect": "Allow",
+	  "Resource": "*"
+    }
+  ]
 }
 EOF
   role = "${aws_iam_role.xosphere_terminator_role.id}"
@@ -89,15 +89,15 @@ EOF
 resource "aws_iam_role" "xosphere_terminator_role" {
   assume_role_policy = <<EOF
 {
-	"Version": "2012-10-17",
-	"Statement": [
-		{
-			"Action": "sts:AssumeRole",
-			"Principal": { "Service": "lambda.amazonaws.com" },
-			"Effect": "Allow",
-			"Sid": ""
-		}
-	]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+	  "Action": "sts:AssumeRole",
+	  "Principal": { "Service": "lambda.amazonaws.com" },
+	  "Effect": "Allow",
+	  "Sid": ""
+	}
+  ]
 }
 EOF
   name = "xosphere-terminator-role"
@@ -198,75 +198,75 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
   name = "xosphere-instance-orchestrator-policy"
   policy = <<EOF
 {
-	"Version": "2012-10-17",
-	"Statement": [
-		{
-			"Action": [
-				"autoscaling:CreateOrUpdateTags",
-              	"autoscaling:DeleteTags",
-              	"autoscaling:BatchPutScheduledUpdateGroupAction",
-              	"autoscaling:BatchDeleteScheduledAction",
-              	"autoscaling:DescribeScheduledActions",
-              	"autoscaling:DescribeLaunchConfigurations",
-              	"autoscaling:DescribeAutoScalingGroups",
-              	"autoscaling:UpdateAutoScalingGroup",
-              	"autoscaling:DescribeNotificationConfigurations",
-              	"autoscaling:DescribeTags",
-              	"autoscaling:AttachInstances",
-              	"autoscaling:DetachInstances",
-				"cloudwatch:PutMetricData",
-              	"ec2:CreateNetworkInterface",
-              	"ec2:CreateTags",
-              	"ec2:DeleteTags",
-              	"ec2:DeleteNetworkInterface",
-              	"ec2:DescribeAccountAttributes",
-              	"ec2:DescribeAddresses",
-              	"ecs:DescribeContainerInstances",
-              	"ec2:DescribeInstanceAttribute",
-              	"ec2:DescribeInstanceCreditSpecifications",
-              	"ec2:DescribeInstanceStatus",
-              	"ec2:DescribeInstances",
-              	"ec2:DescribeLaunchTemplateVersions",
-              	"ec2:DescribeNetworkInterfaces",
-              	"ec2:DescribeRegions",
-              	"ec2:DescribeReservedInstances",
-              	"ec2:DescribeSnapshots",
-              	"ec2:DescribeSpotPriceHistory",
-				"ec2:DescribeSubnets",
-              	"ec2:DescribeTags",
-              	"ec2:DescribeVolumes",
-              	"ec2:RunInstances",
-              	"ec2:StopInstances",
-              	"ec2:TerminateInstances",
-              	"ecs:UpdateContainerInstancesState",
-              	"ecs:DeregisterContainerInstance",
-              	"ecs:ListClusters",
-              	"ecs:ListContainerInstances",
-              	"ecs:ListTasks",
-              	"elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
-              	"elasticloadbalancing:DeregisterTargets",
-              	"elasticloadbalancing:DescribeLoadBalancers",
-              	"elasticloadbalancing:DescribeTargetGroups",
-              	"elasticloadbalancing:DescribeTargetHealth",
-              	"iam:CreateServiceLinkedRole",
-              	"iam:PassRole",
-              	"lambda:InvokeFunction",
-              	"logs:CreateLogGroup",
-              	"logs:CreateLogStream",
-              	"logs:PutLogEvents",
-              	"s3:PutObject",
-              	"s3:GetObject",
-              	"s3:DeleteObject",
-              	"s3:ListBucket",
-              	"s3:GetObjectTagging",
-              	"s3:PutObjectTagging",
-              	"sns:Publish",
-              	"sqs:SendMessage"
-			],
-			"Effect": "Allow",
-			"Resource": "*"
-		}
-	]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+	  "Action": [
+	    "autoscaling:CreateOrUpdateTags",
+        "autoscaling:DeleteTags",
+        "autoscaling:BatchPutScheduledUpdateGroupAction",
+        "autoscaling:BatchDeleteScheduledAction",
+        "autoscaling:DescribeScheduledActions",
+        "autoscaling:DescribeLaunchConfigurations",
+        "autoscaling:DescribeAutoScalingGroups",
+        "autoscaling:UpdateAutoScalingGroup",
+        "autoscaling:DescribeNotificationConfigurations",
+        "autoscaling:DescribeTags",
+        "autoscaling:AttachInstances",
+        "autoscaling:DetachInstances",
+		"cloudwatch:PutMetricData",
+        "ec2:CreateNetworkInterface",
+        "ec2:CreateTags",
+        "ec2:DeleteTags",
+        "ec2:DeleteNetworkInterface",
+        "ec2:DescribeAccountAttributes",
+        "ec2:DescribeAddresses",
+        "ecs:DescribeContainerInstances",
+        "ec2:DescribeInstanceAttribute",
+        "ec2:DescribeInstanceCreditSpecifications",
+        "ec2:DescribeInstanceStatus",
+        "ec2:DescribeInstances",
+        "ec2:DescribeLaunchTemplateVersions",
+        "ec2:DescribeNetworkInterfaces",
+        "ec2:DescribeRegions",
+        "ec2:DescribeReservedInstances",
+        "ec2:DescribeSnapshots",
+        "ec2:DescribeSpotPriceHistory",
+		"ec2:DescribeSubnets",
+        "ec2:DescribeTags",
+        "ec2:DescribeVolumes",
+        "ec2:RunInstances",
+        "ec2:StopInstances",
+        "ec2:TerminateInstances",
+        "ecs:UpdateContainerInstancesState",
+        "ecs:DeregisterContainerInstance",
+        "ecs:ListClusters",
+        "ecs:ListContainerInstances",
+        "ecs:ListTasks",
+        "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
+        "elasticloadbalancing:DeregisterTargets",
+        "elasticloadbalancing:DescribeLoadBalancers",
+        "elasticloadbalancing:DescribeTargetGroups",
+        "elasticloadbalancing:DescribeTargetHealth",
+        "iam:CreateServiceLinkedRole",
+        "iam:PassRole",
+        "lambda:InvokeFunction",
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:DeleteObject",
+        "s3:ListBucket",
+        "s3:GetObjectTagging",
+        "s3:PutObjectTagging",
+        "sns:Publish",
+        "sqs:SendMessage"
+      ],
+	  "Effect": "Allow",
+	  "Resource": "*"
+	}
+  ]
 }
 EOF
   role = "${aws_iam_role.xosphere_instance_orchestrator_role.id}"
@@ -275,15 +275,15 @@ EOF
 resource "aws_iam_role" "xosphere_instance_orchestrator_role" {
   assume_role_policy = <<EOF
 {
-	"Version": "2012-10-17",
-	"Statement": [
-		{
-			"Action": "sts:AssumeRole",
-			"Principal": { "Service": "lambda.amazonaws.com" },
-			"Effect": "Allow",
-			"Sid": ""
-		}
-	]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+	  "Action": "sts:AssumeRole",
+	  "Principal": { "Service": "lambda.amazonaws.com" },
+	  "Effect": "Allow",
+	  "Sid": ""
+	}
+  ]
 }
 EOF
   name = "xosphere-instance-orchestrator-role"
@@ -354,15 +354,15 @@ resource "aws_lambda_event_source_mapping" "instance_orchestrator_launcher_lambd
 resource "aws_iam_role" "instance_orchestrator_launcher_lambda_role" {
   assume_role_policy = <<EOF
 {
-	"Version": "2012-10-17",
-	"Statement": [
-		{
-			"Action": "sts:AssumeRole",
-			"Principal": { "Service": "lambda.amazonaws.com" },
-			"Effect": "Allow",
-			"Sid": ""
-		}
-	]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+	  "Action": "sts:AssumeRole",
+	  "Principal": { "Service": "lambda.amazonaws.com" },
+	  "Effect": "Allow",
+	  "Sid": ""
+	}
+  ]
 }
 EOF
   name = "xosphere-instance-orchestrator-launcher-role"
@@ -374,57 +374,57 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
   role = "${aws_iam_role.instance_orchestrator_launcher_lambda_role.id}"
   policy = <<EOF
 {
-	"Version": "2012-10-17",
-	"Statement": [
-		{
-			"Action": [
-                "cloudwatch:PutMetricData",
-                "ec2:AssociateAddress",
-                "ec2:CreateImage",
-                "ec2:CreateTags",
-                "ec2:DeleteTags",
-                "ec2:DeleteVolume",
-                "ec2:DeregisterImage",
-                "ec2:DescribeAccountAttributes",
-                "ec2:DescribeImages",
-                "ec2:DescribeInstanceAttribute",
-				"ec2:DescribeInstanceStatus",
-                "ec2:DescribeInstances",
-                "ec2:DescribeSpotPriceHistory",
-                "ec2:DescribeTags",
-                "ec2:DescribeSnapshots",
-                "ec2:ModifyInstanceAttribute",
-                "ec2:RunInstances",
-                "ec2:StartInstances",
-                "ec2:StopInstances",
-                "ec2:TerminateInstances",
-                "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
-                "elasticloadbalancing:DeregisterTargets",
-                "elasticloadbalancing:DescribeTargetHealth",
-                "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
-                "elasticloadbalancing:RegisterTargets",
-                "iam:CreateServiceLinkedRole",
- 				"iam:PassRole",
-                "logs:CreateLogGroup",
-                "logs:CreateLogStream",
-                "logs:PutLogEvents",
-                "s3:DeleteObject",
-                "s3:GetObject",
-                "s3:GetObjectTagging",
-                "s3:ListBucket",
-                "s3:PutObject",
-                "s3:PutObjectTagging",
-                "sns:Publish",
-                "sqs:ChangeMessageVisibility",
-                "sqs:DeleteMessage",
-                "sqs:GetQueueAttributes",
-                "sqs:ReceiveMessage",
-				"sqs:SendMessage"
-			],
-			"Effect": "Allow",
-			"Resource": "*"
-		}
-	]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+	  "Action": [
+        "cloudwatch:PutMetricData",
+        "ec2:AssociateAddress",
+        "ec2:CreateImage",
+        "ec2:CreateTags",
+        "ec2:DeleteTags",
+        "ec2:DeleteVolume",
+        "ec2:DeregisterImage",
+        "ec2:DescribeAccountAttributes",
+        "ec2:DescribeImages",
+        "ec2:DescribeInstanceAttribute",
+		"ec2:DescribeInstanceStatus",
+        "ec2:DescribeInstances",
+        "ec2:DescribeSpotPriceHistory",
+        "ec2:DescribeTags",
+        "ec2:DescribeSnapshots",
+        "ec2:ModifyInstanceAttribute",
+        "ec2:RunInstances",
+        "ec2:StartInstances",
+        "ec2:StopInstances",
+        "ec2:TerminateInstances",
+        "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
+        "elasticloadbalancing:DeregisterTargets",
+        "elasticloadbalancing:DescribeTargetHealth",
+        "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+        "elasticloadbalancing:RegisterTargets",
+        "iam:CreateServiceLinkedRole",
+ 		"iam:PassRole",
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "s3:DeleteObject",
+        "s3:GetObject",
+        "s3:GetObjectTagging",
+        "s3:ListBucket",
+        "s3:PutObject",
+        "s3:PutObjectTagging",
+        "sns:Publish",
+        "sqs:ChangeMessageVisibility",
+        "sqs:DeleteMessage",
+        "sqs:GetQueueAttributes",
+        "sqs:ReceiveMessage",
+		"sqs:SendMessage"
+      ],
+	  "Effect": "Allow",
+	  "Resource": "*"
+    }
+  ]
 }
 EOF
 }
@@ -473,15 +473,15 @@ resource "aws_lambda_event_source_mapping" "instance_orchestrator_scheduler_lamb
 resource "aws_iam_role" "instance_orchestrator_scheduler_lambda_role" {
   assume_role_policy = <<EOF
 {
-	"Version": "2012-10-17",
-	"Statement": [
-		{
-			"Action": "sts:AssumeRole",
-			"Principal": { "Service": "lambda.amazonaws.com" },
-			"Effect": "Allow",
-			"Sid": ""
-		}
-	]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+	  "Action": "sts:AssumeRole",
+	  "Principal": { "Service": "lambda.amazonaws.com" },
+	  "Effect": "Allow",
+	  "Sid": ""
+    }
+  ]
 }
 EOF
   name = "xosphere-instance-orchestrator-scheduler-role"
@@ -493,43 +493,43 @@ resource "aws_iam_role_policy" "instance_orchestrator_scheduler_lambda_policy" {
   role = "${aws_iam_role.instance_orchestrator_scheduler_lambda_role.id}"
   policy = <<EOF
 {
-	"Version": "2012-10-17",
-	"Statement": [
-		{
-			"Action": [
-                "cloudwatch:PutMetricData",
-                "ec2:DeleteTags",
-                "ec2:DescribeInstances",
-                "ec2:DescribeInstanceStatus",
-                "ec2:StartInstances",
-                "ec2:StopInstances",
-                "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
-                "elasticloadbalancing:DeregisterTargets",
-                "elasticloadbalancing:DescribeTargetHealth",
-                "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
-                "elasticloadbalancing:RegisterTargets",
-                "iam:CreateServiceLinkedRole",
-                "iam:PassRole",
-                "iam:PutRolePolicy",
-                "logs:CreateLogGroup",
-                "logs:CreateLogStream",
-                "logs:PutLogEvents",
-                "s3:DeleteObject",
-                "s3:GetObject",
-                "s3:GetObjectTagging",
-                "s3:ListBucket",
-                "s3:PutObject",
-                "s3:PutObjectTagging",
-                "sqs:ChangeMessageVisibility",
-                "sqs:DeleteMessage",
-                "sqs:GetQueueAttributes",
-                "sqs:ReceiveMessage",
-                "sqs:SendMessage"
-			],
-			"Effect": "Allow",
-			"Resource": "*"
-		}
-	]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+	  "Action": [
+        "cloudwatch:PutMetricData",
+        "ec2:DeleteTags",
+        "ec2:DescribeInstances",
+        "ec2:DescribeInstanceStatus",
+        "ec2:StartInstances",
+        "ec2:StopInstances",
+        "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
+        "elasticloadbalancing:DeregisterTargets",
+        "elasticloadbalancing:DescribeTargetHealth",
+        "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+        "elasticloadbalancing:RegisterTargets",
+        "iam:CreateServiceLinkedRole",
+        "iam:PassRole",
+        "iam:PutRolePolicy",
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "s3:DeleteObject",
+        "s3:GetObject",
+        "s3:GetObjectTagging",
+        "s3:ListBucket",
+        "s3:PutObject",
+        "s3:PutObjectTagging",
+        "sqs:ChangeMessageVisibility",
+        "sqs:DeleteMessage",
+        "sqs:GetQueueAttributes",
+        "sqs:ReceiveMessage",
+        "sqs:SendMessage"
+      ],
+	  "Effect": "Allow",
+	  "Resource": "*"
+	}
+  ]
 }
 EOF
 }
@@ -575,15 +575,15 @@ resource "aws_cloudwatch_event_rule" "instance_orchestrator_snapshot_creator_clo
 resource "aws_iam_role" "instance_orchestrator_snapshot_creator_role" {
   assume_role_policy = <<EOF
 {
-	"Version": "2012-10-17",
-	"Statement": [
-		{
-			"Action": "sts:AssumeRole",
-			"Principal": { "Service": "lambda.amazonaws.com" },
-			"Effect": "Allow",
-			"Sid": ""
-		}
-	]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+	  "Action": "sts:AssumeRole",
+	  "Principal": { "Service": "lambda.amazonaws.com" },
+	  "Effect": "Allow",
+	  "Sid": ""
+	}
+  ]
 }
 EOF
   name = "xosphere-instance-orchestrator-snapshot-creator-role"
@@ -595,30 +595,30 @@ resource "aws_iam_role_policy" "instance_orchestrator_snapshot_creator_policy" {
   role = "${aws_iam_role.instance_orchestrator_snapshot_creator_role.id}"
   policy = <<EOF
 {
-	"Version": "2012-10-17",
-	"Statement": [
-		{
-			"Action": [
-              	"ec2:CreateSnapshot",
-              	"ec2:CreateTags",
-              	"ec2:DeleteSnapshot",
-              	"ec2:DescribeInstances",
-              	"ec2:DescribeRegions",
-              	"ec2:DescribeSnapshots",
-              	"ec2:DescribeTags",
-              	"iam:CreateServiceLinkedRole",
-              	"iam:PassRole",
-              	"iam:PutRolePolicy",
-              	"logs:CreateLogGroup",
-              	"logs:CreateLogStream",
-              	"logs:PutLogEvents",
-                "sns:Publish",
-              	"sns:Subscribe"
-			],
-			"Effect": "Allow",
-			"Resource": "*"
-		}
-	]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+	  "Action": [
+        "ec2:CreateSnapshot",
+        "ec2:CreateTags",
+        "ec2:DeleteSnapshot",
+        "ec2:DescribeInstances",
+        "ec2:DescribeRegions",
+        "ec2:DescribeSnapshots",
+        "ec2:DescribeTags",
+        "iam:CreateServiceLinkedRole",
+        "iam:PassRole",
+        "iam:PutRolePolicy",
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "sns:Publish",
+        "sns:Subscribe"
+      ],
+	  "Effect": "Allow",
+	  "Resource": "*"
+	}
+  ]
 }
 EOF
 }
@@ -663,15 +663,15 @@ resource "aws_cloudwatch_event_rule" "instance_orchestrator_ami_cleaner_cloudwat
 resource "aws_iam_role" "instance_orchestrator_ami_cleaner_role" {
   assume_role_policy = <<EOF
 {
-	"Version": "2012-10-17",
-	"Statement": [
-		{
-			"Action": "sts:AssumeRole",
-			"Principal": { "Service": "lambda.amazonaws.com" },
-			"Effect": "Allow",
-			"Sid": ""
-		}
-	]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+	  "Action": "sts:AssumeRole",
+	  "Principal": { "Service": "lambda.amazonaws.com" },
+	  "Effect": "Allow",
+	  "Sid": ""
+	}
+  ]
 }
 EOF
   name = "xosphere-instance-orchestrator-ami-cleaner-role"
@@ -683,25 +683,25 @@ resource "aws_iam_role_policy" "instance_orchestrator_ami_cleaner_policy" {
   role = "${aws_iam_role.instance_orchestrator_ami_cleaner_role.id}"
   policy = <<EOF
 {
-	"Version": "2012-10-17",
-	"Statement": [
-		{
-			"Action": [
-              	"ec2:DeregisterImage",
-              	"ec2:DescribeImages",
-              	"ec2:DescribeInstances",
-              	"ec2:DescribeRegions",
-              	"iam:CreateServiceLinkedRole",
-              	"iam:PassRole",
-              	"iam:PutRolePolicy",
-              	"logs:CreateLogGroup",
-              	"logs:CreateLogStream",
-              	"logs:PutLogEvents"
-			],
-			"Effect": "Allow",
-			"Resource": "*"
-		}
-	]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+	  "Action": [
+        "ec2:DeregisterImage",
+        "ec2:DescribeImages",
+        "ec2:DescribeInstances",
+        "ec2:DescribeRegions",
+        "iam:CreateServiceLinkedRole",
+        "iam:PassRole",
+        "iam:PutRolePolicy",
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+	  "Effect": "Allow",
+      "Resource": "*"
+	}
+  ]
 }
 EOF
 }
@@ -751,15 +751,15 @@ resource "aws_lambda_event_source_mapping" "instance_orchestrator_dlq_handler_sq
 resource "aws_iam_role" "instance_orchestrator_dlq_handler_role" {
   assume_role_policy = <<EOF
 {
-	"Version": "2012-10-17",
-	"Statement": [
-		{
-			"Action": "sts:AssumeRole",
-			"Principal": { "Service": "lambda.amazonaws.com" },
-			"Effect": "Allow",
-			"Sid": ""
-		}
-	]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+	  "Action": "sts:AssumeRole",
+	  "Principal": { "Service": "lambda.amazonaws.com" },
+	  "Effect": "Allow",
+	  "Sid": ""
+	}
+  ]
 }
 EOF
   name = "xosphere-instance-orchestrator-dql-handler-role"
@@ -771,31 +771,31 @@ resource "aws_iam_role_policy" "instance_orchestrator_dlq_handler_policy" {
   role = "${aws_iam_role.instance_orchestrator_dlq_handler_role.id}"
   policy = <<EOF
 {
-	"Version": "2012-10-17",
-	"Statement": [
-		{
-			"Action": [
-                "iam:CreateServiceLinkedRole",
-                "iam:PassRole",
-                "iam:PutRolePolicy",
-                "logs:CreateLogGroup",
-                "logs:CreateLogStream",
-                "logs:PutLogEvents",
-                "s3:DeleteObject",
-                "s3:GetObject",
-                "s3:GetObjectTagging",
-                "s3:ListBucket",
-                "s3:PutObject",
-                "sqs:ChangeMessageVisibility",
-                "sqs:DeleteMessage",
-                "sqs:GetQueueAttributes",
-                "sqs:ReceiveMessage",
-                "sqs:SendMessage"
-			],
-			"Effect": "Allow",
-			"Resource": "*"
-		}
-	]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+	  "Action": [
+        "iam:CreateServiceLinkedRole",
+        "iam:PassRole",
+        "iam:PutRolePolicy",
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "s3:DeleteObject",
+        "s3:GetObject",
+        "s3:GetObjectTagging",
+        "s3:ListBucket",
+        "s3:PutObject",
+        "sqs:ChangeMessageVisibility",
+        "sqs:DeleteMessage",
+        "sqs:GetQueueAttributes",
+        "sqs:ReceiveMessage",
+        "sqs:SendMessage"
+      ],
+	  "Effect": "Allow",
+	  "Resource": "*"
+	}
+  ]
 }
 EOF
 }
@@ -847,15 +847,15 @@ resource "aws_iam_role" "io_bridge_lambda_role" {
 
   assume_role_policy = <<EOF
 {
-	"Version": "2012-10-17",
-	"Statement": [
-		{
-			"Action": "sts:AssumeRole",
-			"Principal": { "Service": "lambda.amazonaws.com" },
-			"Effect": "Allow",
-			"Sid": ""
-		}
-	]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+	  "Action": "sts:AssumeRole",
+	  "Principal": { "Service": "lambda.amazonaws.com" },
+	  "Effect": "Allow",
+	  "Sid": ""
+	}
+  ]
 }
 EOF
   name = "xosphere-iobridge-lambda-role"
@@ -869,22 +869,22 @@ resource "aws_iam_role_policy" "io_bridge_lambda_policy" {
   role = "${aws_iam_role.io_bridge_lambda_role.id}"
   policy = <<EOF
 {
-	"Version": "2012-10-17",
-	"Statement": [
-		{
-			"Action": [
-                "ec2:CreateNetworkInterface",
-              	"ec2:DeleteNetworkInterface",
-              	"ec2:DescribeNetworkInterfaces",
-              	"iam:PassRole",
-              	"logs:CreateLogGroup",
-              	"logs:CreateLogStream",
-              	"logs:PutLogEvents"
-			],
-			"Effect": "Allow",
-			"Resource": "*"
-		}
-	]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": [
+        "ec2:CreateNetworkInterface",
+        "ec2:DeleteNetworkInterface",
+        "ec2:DescribeNetworkInterfaces",
+        "iam:PassRole",
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+	  "Effect": "Allow",
+	  "Resource": "*"
+	}
+  ]
 }
 EOF
 }
