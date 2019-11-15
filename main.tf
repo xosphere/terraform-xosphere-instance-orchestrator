@@ -25,10 +25,56 @@ resource "aws_sqs_queue" "instance_orchestrator_schedule_queue" {
   visibility_timeout_seconds = 1020
 }
 
-resource "aws_lambda_function" "xosphere_terminator_lambda" {
+resource "aws_sqs_queue" "instance_orchestrator_snapshot_dlq" {
+  name = "xosphere-instance-orchestrator-snapshot-dlq"
+  visibility_timeout_seconds = 300
+}
+
+resource "aws_sqs_queue" "instance_orchestrator_snapshot_queue" {
+  name = "xosphere-instance-orchestrator-snapshot"
+  redrive_policy = "{\"deadLetterTargetArn\":\"${aws_sqs_queue.instance_orchestrator_snapshot_dlq.arn}\",\"maxReceiveCount\":5}"
+  visibility_timeout_seconds = 1020
+}
+
+//terminator
+resource "aws_lambda_function" "xosphere_terminator_lambda_k8s_enabled" {
+  count = "${length(var.k8s_vpc_security_group_ids) > 0  && length(var.k8s_vpc_subnet_ids) > 0 ? 1 : 0}"
   s3_bucket = "xosphere-io-releases"
-  s3_key = "terminator-lambda-0.3.2.zip"
+  s3_key = "terminator-lambda-0.14.1.zip"
   description = "Xosphere Terminator"
+  environment {
+    variables = {
+      API_TOKEN = "${var.api_token}"
+      ENDPOINT_URL = "https://portal-api.xosphere.io/v1"
+      INSTANCE_STATE_S3_BUCKET = "${aws_s3_bucket.instance_state_s3_bucket.id}"
+      SQS_QUEUE = "${aws_sqs_queue.instance_orchestrator_launcher_queue.id}"
+      IO_BRIDGE_NAME = "xosphere-io-bridge"
+      K8S_VPC_ENABLED = "true"
+    }
+  }
+  function_name = "xosphere-terminator-lambda"
+  handler = "terminator"
+  memory_size = "${var.terminator_lambda_memory_size}"
+  role = "${aws_iam_role.xosphere_terminator_role.arn}"
+  runtime = "go1.x"
+  timeout = "${var.terminator_lambda_timeout}"
+}
+
+resource "aws_lambda_function" "xosphere_terminator_lambda" {
+  count = "${length(var.k8s_vpc_security_group_ids) == 0  || length(var.k8s_vpc_subnet_ids) == 0 ? 1 : 0}"
+  s3_bucket = "xosphere-io-releases"
+  s3_key = "terminator-lambda-0.14.1.zip"
+  description = "Xosphere Terminator"
+  environment {
+    variables = {
+      API_TOKEN = "${var.api_token}"
+      ENDPOINT_URL = "https://portal-api.xosphere.io/v1"
+      INSTANCE_STATE_S3_BUCKET = "${aws_s3_bucket.instance_state_s3_bucket.id}"
+      SQS_QUEUE = "${aws_sqs_queue.instance_orchestrator_launcher_queue.id}"
+      IO_BRIDGE_NAME = "xosphere-io-bridge"
+      K8S_VPC_ENABLED = "false"
+    }
+  }
   function_name = "xosphere-terminator-lambda"
   handler = "terminator"
   memory_size = "${var.terminator_lambda_memory_size}"
@@ -39,7 +85,7 @@ resource "aws_lambda_function" "xosphere_terminator_lambda" {
 
 resource "aws_lambda_permission" "xosphere_terminator_lambda_permission" {
   action = "lambda:InvokeFunction"
-  function_name = "${aws_lambda_function.xosphere_terminator_lambda.function_name}"
+  function_name = "xosphere-terminator-lambda"
   principal = "events.amazonaws.com"
   source_arn = "${aws_cloudwatch_event_rule.xosphere_terminator_cloudwatch_event_rule.arn}"
   statement_id = "AllowExecutionFromCloudWatch"
@@ -58,6 +104,7 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
         "autoscaling:DetachInstances",
         "ec2:CreateTags",
         "ec2:DescribeAddresses",
+        "ec2:DescribeAvailabilityZones",
         "ecs:DescribeContainerInstances",
         "ec2:DescribeInstances",
         "ec2:DescribeInstanceAttribute",
@@ -75,7 +122,8 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
         "sns:Publish",
         "sqs:SendMessage",
         "s3:GetObject",
-        "s3:PutObject"
+        "s3:PutObject",
+        "s3:PutObjectTagging"
       ],
       "Effect": "Allow",
       "Resource": "*"
@@ -105,7 +153,7 @@ EOF
 }
 
 resource "aws_cloudwatch_log_group" "xosphere_terminator_cloudwatch_log_group" {
-  name = "/aws/lambda/${aws_lambda_function.xosphere_terminator_lambda.function_name}"
+  name = "/aws/lambda/xosphere-terminator-lambda"
   retention_in_days = "${var.terminator_lambda_log_retention}"
 }
 
@@ -124,16 +172,26 @@ PATTERN
   name = "xosphere-terminator-cloudwatch-rule"
 }
 
-resource "aws_cloudwatch_event_target" "xosphere_terminator_cloudwatch_event_target" {
-  arn = "${aws_lambda_function.xosphere_terminator_lambda.arn}"
-  rule = "${aws_cloudwatch_event_rule.xosphere_terminator_cloudwatch_event_rule.name}"
-  target_id = "xosphere-terminator"
+data "aws_lambda_function" "terminator_lambda_function" {
+  function_name = "xosphere-terminator-lambda"
+  depends_on = [
+    "aws_lambda_function.xosphere_terminator_lambda",
+    "aws_lambda_function.xosphere_terminator_lambda_k8s_enabled"]
 }
 
+resource "aws_cloudwatch_event_target" "xosphere_terminator_cloudwatch_event_target" {
+  arn = "${data.aws_lambda_function.terminator_lambda_function.arn}"
+  rule = "${aws_cloudwatch_event_rule.xosphere_terminator_cloudwatch_event_rule.name}"
+  target_id = "xosphere-terminator"
+  depends_on = [
+    "data.aws_lambda_function.terminator_lambda_function"]
+}
+
+//instance-orchestrator
 resource "aws_lambda_function" "xosphere_instance_orchestrator_lambda_k8s_enabled" {
   count = "${length(var.k8s_vpc_security_group_ids) > 0  && length(var.k8s_vpc_subnet_ids) > 0 ? 1 : 0}"
   s3_bucket = "xosphere-io-releases"
-  s3_key = "instance-orchestrator-lambda-0.11.4.zip"
+  s3_key = "instance-orchestrator-lambda-0.14.1.zip"
   description = "Xosphere Instance Orchestrator"
   environment {
     variables = {
@@ -143,6 +201,7 @@ resource "aws_lambda_function" "xosphere_instance_orchestrator_lambda_k8s_enable
       INSTANCE_STATE_S3_BUCKET = "${aws_s3_bucket.instance_state_s3_bucket.id}"
       SQS_QUEUE = "${aws_sqs_queue.instance_orchestrator_launcher_queue.id}"
       SQS_SCHEDULER_QUEUE = "${aws_sqs_queue.instance_orchestrator_schedule_queue.id}"
+      SQS_SNAPSHOT_QUEUE = "${aws_sqs_queue.instance_orchestrator_snapshot_queue.id}"
       IO_BRIDGE_NAME = "xosphere-io-bridge"
       MIN_ON_DEMAND = "${var.min_on_demand}"
       PERCENT_ON_DEMAND = "${var.pct_on_demand}"
@@ -161,7 +220,7 @@ resource "aws_lambda_function" "xosphere_instance_orchestrator_lambda_k8s_enable
 resource "aws_lambda_function" "xosphere_instance_orchestrator_lambda" {
   count = "${length(var.k8s_vpc_security_group_ids) == 0  || length(var.k8s_vpc_subnet_ids) == 0 ? 1 : 0}"
   s3_bucket = "xosphere-io-releases"
-  s3_key = "instance-orchestrator-lambda-0.11.4.zip"
+  s3_key = "instance-orchestrator-lambda-0.14.1.zip"
   description = "Xosphere Instance Orchestrator"
   environment {
     variables = {
@@ -171,6 +230,7 @@ resource "aws_lambda_function" "xosphere_instance_orchestrator_lambda" {
       INSTANCE_STATE_S3_BUCKET = "${aws_s3_bucket.instance_state_s3_bucket.id}"
       SQS_QUEUE = "${aws_sqs_queue.instance_orchestrator_launcher_queue.id}"
       SQS_SCHEDULER_QUEUE = "${aws_sqs_queue.instance_orchestrator_schedule_queue.id}"
+      SQS_SNAPSHOT_QUEUE = "${aws_sqs_queue.instance_orchestrator_snapshot_queue.id}"
       IO_BRIDGE_NAME = "xosphere-io-bridge"
       MIN_ON_DEMAND = "${var.min_on_demand}"
       PERCENT_ON_DEMAND = "${var.pct_on_demand}"
@@ -202,6 +262,7 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
   "Statement": [
     {
       "Action": [
+        "autoscaling:AttachInstances",
         "autoscaling:CreateOrUpdateTags",
         "autoscaling:DeleteTags",
         "autoscaling:BatchPutScheduledUpdateGroupAction",
@@ -209,11 +270,10 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
         "autoscaling:DescribeScheduledActions",
         "autoscaling:DescribeLaunchConfigurations",
         "autoscaling:DescribeAutoScalingGroups",
-        "autoscaling:UpdateAutoScalingGroup",
         "autoscaling:DescribeNotificationConfigurations",
         "autoscaling:DescribeTags",
-        "autoscaling:AttachInstances",
         "autoscaling:DetachInstances",
+        "autoscaling:UpdateAutoScalingGroup",
         "cloudwatch:PutMetricData",
         "ec2:CreateNetworkInterface",
         "ec2:CreateTags",
@@ -221,7 +281,7 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
         "ec2:DeleteNetworkInterface",
         "ec2:DescribeAccountAttributes",
         "ec2:DescribeAddresses",
-        "ecs:DescribeContainerInstances",
+        "ec2:DescribeAvailabilityZones",
         "ec2:DescribeInstanceAttribute",
         "ec2:DescribeInstanceCreditSpecifications",
         "ec2:DescribeInstanceStatus",
@@ -238,11 +298,12 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
         "ec2:RunInstances",
         "ec2:StopInstances",
         "ec2:TerminateInstances",
-        "ecs:UpdateContainerInstancesState",
         "ecs:DeregisterContainerInstance",
+        "ecs:DescribeContainerInstances",
         "ecs:ListClusters",
         "ecs:ListContainerInstances",
         "ecs:ListTasks",
+        "ecs:UpdateContainerInstancesState",
         "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
         "elasticloadbalancing:DeregisterTargets",
         "elasticloadbalancing:DescribeLoadBalancers",
@@ -319,7 +380,7 @@ resource "aws_cloudwatch_event_target" "xosphere_instance_orchestrator_cloudwatc
 
 resource "aws_lambda_function" "xosphere_instance_orchestrator_launcher_lambda" {
   s3_bucket = "xosphere-io-releases"
-  s3_key = "launcher-lambda-0.1.4.zip"
+  s3_key = "launcher-lambda-0.14.1.zip"
   description = "Xosphere Instance Orchestrator Launcher"
   environment {
     variables = {
@@ -386,6 +447,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
         "ec2:DeleteVolume",
         "ec2:DeregisterImage",
         "ec2:DescribeAccountAttributes",
+        "ec2:DescribeAvailabilityZones",
         "ec2:DescribeImages",
         "ec2:DescribeInstanceAttribute",
         "ec2:DescribeInstanceStatus",
@@ -393,6 +455,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
         "ec2:DescribeSpotPriceHistory",
         "ec2:DescribeTags",
         "ec2:DescribeSnapshots",
+        "ec2:DescribeVolumes",
         "ec2:ModifyInstanceAttribute",
         "ec2:RunInstances",
         "ec2:StartInstances",
@@ -438,7 +501,7 @@ resource "aws_cloudwatch_log_group" "instance_orchestrator_launcher_cloudwatch_l
 
 resource "aws_lambda_function" "instance_orchestrator_scheduler_lambda" {
   s3_bucket = "xosphere-io-releases"
-  s3_key = "scheduler-lambda-0.1.1.zip"
+  s3_key = "scheduler-lambda-0.14.1.zip"
   description = "Xosphere Instance Orchestrator Scheduler"
   environment {
     variables = {
@@ -543,7 +606,7 @@ resource "aws_cloudwatch_log_group" "instance_orchestrator_scheduler_cloudwatch_
 
 resource "aws_lambda_function" "instance_orchestrator_snapshot_creator_lambda" {
   s3_bucket = "xosphere-io-releases"
-  s3_key = "snapshot-creator-lambda-0.1.1.zip"
+  s3_key = "snapshot-creator-lambda-0.14.1.zip"
   description = "Xosphere Instance Orchestrator Snapshot Creator"
   environment {
     variables = {
@@ -570,6 +633,20 @@ resource "aws_lambda_permission" "instance_orchestrator_snapshot_creator_lambda_
 resource "aws_cloudwatch_event_rule" "instance_orchestrator_snapshot_creator_cloudwatch_event_rule" {
   name = "xosphere-io-snapshot-creator-schedule"
   schedule_expression = "cron(${var.snapshot_creator_cron_schedule})"
+}
+
+resource "aws_lambda_permission" "instance_orchestrator_snapshot_creator_sqs_lambda_permission" {
+  action = "lambda:InvokeFunction"
+  function_name = "${aws_lambda_function.instance_orchestrator_snapshot_creator_lambda.arn}"
+  principal = "sqs.amazonaws.com"
+  source_arn = "${aws_sqs_queue.instance_orchestrator_snapshot_queue.arn}"
+  statement_id = "AllowSQSInvoke"
+}
+
+resource "aws_lambda_event_source_mapping" "instance_orchestrator_snapshot_creator_lambda_sqs_trigger" {
+  event_source_arn = "${aws_sqs_queue.instance_orchestrator_snapshot_queue.arn}"
+  function_name = "${aws_lambda_function.instance_orchestrator_snapshot_creator_lambda.arn}"
+  batch_size = 1
 }
 
 resource "aws_iam_role" "instance_orchestrator_snapshot_creator_role" {
@@ -606,6 +683,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_snapshot_creator_policy" {
         "ec2:DescribeRegions",
         "ec2:DescribeSnapshots",
         "ec2:DescribeTags",
+        "ec2:DescribeVolumes",
         "iam:CreateServiceLinkedRole",
         "iam:PassRole",
         "iam:PutRolePolicy",
@@ -613,7 +691,10 @@ resource "aws_iam_role_policy" "instance_orchestrator_snapshot_creator_policy" {
         "logs:CreateLogStream",
         "logs:PutLogEvents",
         "sns:Publish",
-        "sns:Subscribe"
+        "sns:Subscribe",
+        "sqs:DeleteMessage",
+        "sqs:GetQueueAttributes",
+        "sqs:ReceiveMessage",
       ],
       "Effect": "Allow",
       "Resource": "*"
@@ -632,7 +713,7 @@ resource "aws_cloudwatch_log_group" "instance_orchestrator_snapshot_creator_clou
 
 resource "aws_lambda_function" "instance_orchestrator_ami_cleaner_lambda" {
   s3_bucket = "xosphere-io-releases"
-  s3_key = "ami-cleaner-lambda-0.1.0.zip"
+  s3_key = "ami-cleaner-lambda-0.14.1.zip"
   description = "Xosphere Instance Orchestrator AMI Cleaner"
   environment {
     variables = {
@@ -715,7 +796,7 @@ resource "aws_cloudwatch_log_group" "instance_orchestrator_ami_cleaner_cloudwatc
 
 resource "aws_lambda_function" "instance_orchestrator_dlq_handler_lambda" {
   s3_bucket = "xosphere-io-releases"
-  s3_key = "dlq-handler-lambda-0.1.2.zip"
+  s3_key = "dlq-handler-lambda-0.14.1.zip"
   description = "Xosphere Instance Orchestrator Dead-Letter Queue Handler"
   environment {
     variables = {
@@ -786,6 +867,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_dlq_handler_policy" {
         "s3:GetObjectTagging",
         "s3:ListBucket",
         "s3:PutObject",
+        "s3:PutObjectTagging",
         "sqs:ChangeMessageVisibility",
         "sqs:DeleteMessage",
         "sqs:GetQueueAttributes",
@@ -811,7 +893,7 @@ resource "aws_lambda_function" "xosphere_io_bridge_lambda" {
   count = "${length(var.k8s_vpc_security_group_ids) > 0  && length(var.k8s_vpc_subnet_ids) > 0 ? 1 : 0}"
 
   s3_bucket = "xosphere-io-releases"
-  s3_key = "iobridge-lambda-0.1.0.zip"
+  s3_key = "iobridge-lambda-0.14.1.zip"
   description = "Xosphere IO-Bridge"
   environment {
     variables = {
