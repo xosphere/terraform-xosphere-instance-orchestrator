@@ -694,7 +694,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_snapshot_creator_policy" {
         "sns:Subscribe",
         "sqs:DeleteMessage",
         "sqs:GetQueueAttributes",
-        "sqs:ReceiveMessage",
+        "sqs:ReceiveMessage"
       ],
       "Effect": "Allow",
       "Resource": "*"
