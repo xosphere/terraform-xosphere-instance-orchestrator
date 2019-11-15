@@ -617,7 +617,7 @@ resource "aws_lambda_function" "instance_orchestrator_snapshot_creator_lambda" {
   function_name = "xosphere-instance-orchestrator-snapshot-creator"
   handler = "snapshot-creator"
   memory_size = "${var.snapshot_creator_memory_size}"
-  role = "${aws_iam_role.instance_orchestrator_scheduler_lambda_role.arn}"
+  role = "${aws_iam_role.instance_orchestrator_snapshot_creator_role.arn}"
   runtime = "go1.x"
   timeout = "${var.snapshot_creator_lambda_timeout}"
 }
