@@ -903,13 +903,11 @@ resource "aws_lambda_function" "xosphere_io_bridge_lambda" {
   function_name = "xosphere-io-bridge"
   handler = "iobridge"
   memory_size = "${var.io_bridge_memory_size}"
-  role = "${aws_iam_role.io_bridge_lambda_role.arn}"
+  role = "${aws_iam_role.io_bridge_lambda_role[count.index].arn}"
   runtime = "go1.x"
   vpc_config {
-    security_group_ids = [
-      "${var.k8s_vpc_security_group_ids}"]
-    subnet_ids = [
-      "${var.k8s_vpc_subnet_ids}"]
+    security_group_ids = var.k8s_vpc_security_group_ids
+    subnet_ids = var.k8s_vpc_subnet_ids
   }
   timeout = "${var.io_bridge_lambda_timeout}"
 }
@@ -948,7 +946,7 @@ resource "aws_iam_role_policy" "io_bridge_lambda_policy" {
   count = "${length(var.k8s_vpc_security_group_ids) > 0  && length(var.k8s_vpc_subnet_ids) > 0 ? 1 : 0}"
 
   name = "xosphere-iobridge-lambda-policy"
-  role = "${aws_iam_role.io_bridge_lambda_role.id}"
+  role = "${aws_iam_role.io_bridge_lambda_role[count.index].id}"
   policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -974,6 +972,6 @@ EOF
 resource "aws_cloudwatch_log_group" "io_bridge_cloudwatch_log_group" {
   count = "${length(var.k8s_vpc_security_group_ids) > 0  && length(var.k8s_vpc_subnet_ids) > 0 ? 1 : 0}"
 
-  name = "/aws/lambda/${aws_lambda_function.xosphere_io_bridge_lambda.function_name}"
+  name = "/aws/lambda/${aws_lambda_function.xosphere_io_bridge_lambda[count.index].function_name}"
   retention_in_days = "${var.io_bridge_lambda_log_retention}"
 }
