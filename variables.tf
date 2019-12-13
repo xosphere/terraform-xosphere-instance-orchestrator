@@ -102,6 +102,41 @@ variable "io_scheduler_lambda_log_retention" {
   default = 30
 }
 
+variable "io_budget_driver_memory_size" {
+  description = "Memory size allocated to Lambda"
+  default = 256
+}
+
+variable "io_budget_driver_lambda_timeout" {
+  description = "Lambda function execution timeout"
+  default = 90
+}
+
+variable "io_budget_driver_lambda_log_retention" {
+  description = "Lambda function log file retention in days"
+  default = 30
+}
+
+variable "budget_lambda_cron_schedule" {
+  description = "budget driver function schedule cron expression"
+  default = "0/2 * * * ? *"
+}
+
+variable "io_budget_memory_size" {
+  description = "Memory size allocated to Lambda"
+  default = 256
+}
+
+variable "io_budget_lambda_timeout" {
+  description = "Lambda function execution timeout"
+  default = 900
+}
+
+variable "io_budget_lambda_log_retention" {
+  description = "Lambda function log file retention in days"
+  default = 30
+}
+
 variable "snapshot_creator_memory_size" {
   description = "Memory size allocated to Lambda"
   default = 128
@@ -172,4 +207,14 @@ variable "k8s_vpc_subnet_ids" {
   description = "The subnet ids of VPC in Kubernetes cluster"
   type = "list"
   default = []
+}
+
+variable "daily_budget_grace_period_in_seconds" {
+  description = "Grace period in seconds for daily budget enforcement"
+  default = 1200
+}
+
+variable "monthly_budget_grace_period_in_seconds" {
+  description = "Grace period in seconds for monthly budget enforcement"
+  default = 36000
 }
