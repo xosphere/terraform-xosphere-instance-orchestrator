@@ -739,7 +739,7 @@ resource "aws_lambda_function" "instance_orchestrator_budget_lambda" {
   function_name = "xosphere-instance-orchestrator-budget"
   handler = "budget"
   memory_size = "${var.io_budget_memory_size}"
-  role = ""
+  role = "${aws_iam_role.instance_orchestrator_budget_lambda_role.arn}"
   runtime = "go1.x"
   timeout = "${var.io_budget_lambda_timeout}"
 }
