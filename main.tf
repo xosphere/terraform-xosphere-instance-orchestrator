@@ -719,6 +719,12 @@ resource "aws_cloudwatch_event_rule" "instance_orchestrator_budget_driver_cloudw
   schedule_expression = "cron(${var.budget_lambda_cron_schedule})"
 }
 
+resource "aws_cloudwatch_event_target" "instance_orchestrator_budget_driver_cloudwatch_event_target" {
+  arn = "${aws_lambda_function.instance_orchestrator_budget_driver_lambda.arn}"
+  rule = "${aws_cloudwatch_event_rule.instance_orchestrator_budget_driver_cloudwatch_event_rule.name}"
+  target_id = "xosphere-io-budget-driver"
+}
+
 resource "aws_cloudwatch_log_group" "instance_orchestrator_budget_driver_cloudwatch_log_group" {
   name = "/aws/lambda/${aws_lambda_function.instance_orchestrator_budget_driver_lambda.function_name}"
   retention_in_days = "${var.io_budget_driver_lambda_log_retention}"
@@ -861,6 +867,12 @@ resource "aws_cloudwatch_event_rule" "instance_orchestrator_snapshot_creator_clo
   schedule_expression = "cron(${var.snapshot_creator_cron_schedule})"
 }
 
+resource "aws_cloudwatch_event_target" "instance_orchestrator_snapshot_creator_cloudwatch_event_target" {
+  arn = "${aws_lambda_function.instance_orchestrator_snapshot_creator_lambda.arn}"
+  rule = "${aws_cloudwatch_event_rule.instance_orchestrator_snapshot_creator_cloudwatch_event_rule.name}"
+  target_id = "xosphere-io-snapshot-creator"
+}
+
 resource "aws_lambda_permission" "instance_orchestrator_snapshot_creator_sqs_lambda_permission" {
   action = "lambda:InvokeFunction"
   function_name = "${aws_lambda_function.instance_orchestrator_snapshot_creator_lambda.arn}"
@@ -965,6 +977,12 @@ resource "aws_lambda_permission" "instance_orchestrator_ami_cleaner_lambda_permi
 resource "aws_cloudwatch_event_rule" "instance_orchestrator_ami_cleaner_cloudwatch_event_rule" {
   name = "xosphere-io-ami-cleaner-schedule"
   schedule_expression = "cron(${var.ami_cleaner_cron_schedule})"
+}
+
+resource "aws_cloudwatch_event_target" "instance_orchestrator_ami_cleaner_cloudwatch_event_target" {
+  arn = "${aws_lambda_function.instance_orchestrator_ami_cleaner_lambda.arn}"
+  rule = "${aws_cloudwatch_event_rule.instance_orchestrator_ami_cleaner_cloudwatch_event_rule.name}"
+  target_id = "xosphere-io-ami-cleaner"
 }
 
 resource "aws_iam_role" "instance_orchestrator_ami_cleaner_role" {
