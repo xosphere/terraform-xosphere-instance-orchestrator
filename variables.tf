@@ -54,7 +54,7 @@ variable "terminator_lambda_memory_size" {
 
 variable "terminator_lambda_timeout" {
   description = "Lambda function execution timeout"
-  default = 60
+  default = 180
 }
 
 variable "terminator_lambda_log_retention" {
@@ -189,7 +189,7 @@ variable "io_bridge_memory_size" {
 
 variable "io_bridge_lambda_timeout" {
   description = "Lambda function execution timeout"
-  default = 60
+  default = 180
 }
 
 variable "io_bridge_lambda_log_retention" {
