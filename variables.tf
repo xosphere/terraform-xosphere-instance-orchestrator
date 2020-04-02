@@ -218,3 +218,8 @@ variable "monthly_budget_grace_period_in_seconds" {
   description = "Grace period in seconds for monthly budget enforcement"
   default = 36000
 }
+
+variable "k8s_drain_timeout_in_mins" {
+  description = "Timeout in minutes for K8s node drain request"
+  default = 15
+}
