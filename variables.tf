@@ -2,6 +2,12 @@
 variable "api_token" {
 }
 
+variable "tags" {
+  description = "Map of tag keys and values to be applied to objects created by this module (where applicable)"
+  type = "map"
+  default = {}
+}
+
 variable "min_on_demand" {
   description = "Minimum number of On-Demand instances per Auto Scaling Group"
   default = "0"

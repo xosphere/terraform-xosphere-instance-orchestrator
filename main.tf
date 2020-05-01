@@ -1,50 +1,59 @@
 resource "aws_s3_bucket" "instance_state_s3_bucket" {
   force_destroy = true
   bucket_prefix = "xosphere-instance-orchestrator"
+  tags = "${var.tags}"
 }
 
 resource "aws_sqs_queue" "instance_orchestrator_launcher_dlq" {
   name = "xosphere-instance-orchestrator-launch-dlq"
   visibility_timeout_seconds = 300
+  tags = "${var.tags}"
 }
 
 resource "aws_sqs_queue" "instance_orchestrator_launcher_queue" {
   name = "xosphere-instance-orchestrator-launch"
   redrive_policy = "{\"deadLetterTargetArn\":\"${aws_sqs_queue.instance_orchestrator_launcher_dlq.arn}\",\"maxReceiveCount\":5}"
   visibility_timeout_seconds = 1020
+  tags = "${var.tags}"
 }
 
 resource "aws_sqs_queue" "instance_orchestrator_schedule_dlq" {
   name = "xosphere-instance-orchestrator-schedule-dlq"
   visibility_timeout_seconds = 300
+  tags = "${var.tags}"
 }
 
 resource "aws_sqs_queue" "instance_orchestrator_schedule_queue" {
   name = "xosphere-instance-orchestrator-schedule"
   redrive_policy = "{\"deadLetterTargetArn\":\"${aws_sqs_queue.instance_orchestrator_schedule_dlq.arn}\",\"maxReceiveCount\":5}"
   visibility_timeout_seconds = 1020
+  tags = "${var.tags}"
 }
 
 resource "aws_sqs_queue" "instance_orchestrator_snapshot_dlq" {
   name = "xosphere-instance-orchestrator-snapshot-dlq"
   visibility_timeout_seconds = 300
+  tags = "${var.tags}"
 }
 
 resource "aws_sqs_queue" "instance_orchestrator_snapshot_queue" {
   name = "xosphere-instance-orchestrator-snapshot"
   redrive_policy = "{\"deadLetterTargetArn\":\"${aws_sqs_queue.instance_orchestrator_snapshot_dlq.arn}\",\"maxReceiveCount\":5}"
   visibility_timeout_seconds = 1020
+  tags = "${var.tags}"
 }
 
 resource "aws_sqs_queue" "instance_orchestrator_budget_dlq" {
   name = "xosphere-instance-orchestrator-budget-dlq"
   visibility_timeout_seconds = 300
+  tags = "${var.tags}"
 }
 
 resource "aws_sqs_queue" "instance_orchestrator_budget_queue" {
   name = "xosphere-instance-orchestrator-budget"
   redrive_policy = "{\"deadLetterTargetArn\":\"${aws_sqs_queue.instance_orchestrator_budget_dlq.arn}\",\"maxReceiveCount\":5}"
   visibility_timeout_seconds = 1020
+  tags = "${var.tags}"
 }
 
 //terminator
@@ -69,6 +78,7 @@ resource "aws_lambda_function" "xosphere_terminator_lambda_k8s_enabled" {
   role = "${aws_iam_role.xosphere_terminator_role.arn}"
   runtime = "go1.x"
   timeout = "${var.terminator_lambda_timeout}"
+  tags = "${var.tags}"
 }
 
 resource "aws_lambda_function" "xosphere_terminator_lambda" {
@@ -92,6 +102,7 @@ resource "aws_lambda_function" "xosphere_terminator_lambda" {
   role = "${aws_iam_role.xosphere_terminator_role.arn}"
   runtime = "go1.x"
   timeout = "${var.terminator_lambda_timeout}"
+  tags = "${var.tags}"
 }
 
 resource "aws_lambda_permission" "xosphere_terminator_lambda_permission" {
@@ -164,11 +175,13 @@ resource "aws_iam_role" "xosphere_terminator_role" {
 EOF
   name = "xosphere-terminator-role"
   path = "/"
+  tags = "${var.tags}"
 }
 
 resource "aws_cloudwatch_log_group" "xosphere_terminator_cloudwatch_log_group" {
   name = "/aws/lambda/xosphere-terminator-lambda"
   retention_in_days = "${var.terminator_lambda_log_retention}"
+  tags = "${var.tags}"
 }
 
 resource "aws_cloudwatch_event_rule" "xosphere_terminator_cloudwatch_event_rule" {
@@ -184,10 +197,12 @@ resource "aws_cloudwatch_event_rule" "xosphere_terminator_cloudwatch_event_rule"
 }
 PATTERN
   name = "xosphere-terminator-cloudwatch-rule"
+  tags = "${var.tags}"
 }
 
 data "aws_lambda_function" "terminator_lambda_function" {
   function_name = "xosphere-terminator-lambda"
+  tags = "${var.tags}"
   depends_on = [
     "aws_lambda_function.xosphere_terminator_lambda",
     "aws_lambda_function.xosphere_terminator_lambda_k8s_enabled"]
@@ -230,6 +245,7 @@ resource "aws_lambda_function" "xosphere_instance_orchestrator_lambda_k8s_enable
   role = "${aws_iam_role.xosphere_instance_orchestrator_role.arn}"
   runtime = "go1.x"
   timeout = "${var.lambda_timeout}"
+  tags = "${var.tags}"
 }
 
 resource "aws_lambda_function" "xosphere_instance_orchestrator_lambda" {
@@ -260,6 +276,7 @@ resource "aws_lambda_function" "xosphere_instance_orchestrator_lambda" {
   role = "${aws_iam_role.xosphere_instance_orchestrator_role.arn}"
   runtime = "go1.x"
   timeout = "${var.lambda_timeout}"
+  tags = "${var.tags}"
 }
 
 resource "aws_lambda_permission" "xosphere_instance_orchestrator_lambda_permission" {
@@ -379,20 +396,24 @@ resource "aws_iam_role" "xosphere_instance_orchestrator_role" {
 EOF
   name = "xosphere-instance-orchestrator-role"
   path = "/"
+  tags = "${var.tags}"
 }
 
 resource "aws_cloudwatch_log_group" "xosphere_instance_orchestrator_cloudwatch_log_group" {
   name = "/aws/lambda/xosphere-instance-orchestrator-lambda"
   retention_in_days = "${var.lambda_log_retention}"
+  tags = "${var.tags}"
 }
 
 resource "aws_cloudwatch_event_rule" "xosphere_instance_orchestrator_cloudwatch_event_rule" {
   name = "xosphere-instance-orchestrator-frequency"
   schedule_expression = "cron(${var.lambda_cron_schedule})"
+  tags = "${var.tags}"
 }
 
 data "aws_lambda_function" "instance_orchestrator_lambda_function" {
   function_name = "xosphere-instance-orchestrator-lambda"
+  tags = "${var.tags}"
   depends_on = [
     "aws_lambda_function.xosphere_instance_orchestrator_lambda",
     "aws_lambda_function.xosphere_instance_orchestrator_lambda_k8s_enabled"]
@@ -426,6 +447,7 @@ resource "aws_lambda_function" "xosphere_instance_orchestrator_launcher_lambda" 
   role = "${aws_iam_role.instance_orchestrator_launcher_lambda_role.arn}"
   runtime = "go1.x"
   timeout = "${var.io_launcher_lambda_timeout}"
+  tags = "${var.tags}"
 }
 
 resource "aws_lambda_permission" "instance_orchestrator_launcher_lambda_permission" {
@@ -458,6 +480,7 @@ resource "aws_iam_role" "instance_orchestrator_launcher_lambda_role" {
 EOF
   name = "xosphere-instance-orchestrator-launcher-role"
   path = "/"
+  tags = "${var.tags}"
 }
 
 resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
@@ -526,6 +549,7 @@ EOF
 resource "aws_cloudwatch_log_group" "instance_orchestrator_launcher_cloudwatch_log_group" {
   name = "/aws/lambda/${aws_lambda_function.xosphere_instance_orchestrator_launcher_lambda.function_name}"
   retention_in_days = "${var.io_launcher_lambda_log_retention}"
+  tags = "${var.tags}"
 }
 
 //scheduler
@@ -548,6 +572,7 @@ resource "aws_lambda_function" "instance_orchestrator_scheduler_lambda" {
   role = "${aws_iam_role.instance_orchestrator_scheduler_lambda_role.arn}"
   runtime = "go1.x"
   timeout = "${var.io_scheduler_lambda_timeout}"
+  tags = "${var.tags}"
 }
 
 resource "aws_lambda_permission" "instance_orchestrator_scheduler_lambda_permission" {
@@ -580,6 +605,7 @@ resource "aws_iam_role" "instance_orchestrator_scheduler_lambda_role" {
 EOF
   name = "xosphere-instance-orchestrator-scheduler-role"
   path = "/"
+  tags = "${var.tags}"
 }
 
 resource "aws_iam_role_policy" "instance_orchestrator_scheduler_lambda_policy" {
@@ -632,6 +658,7 @@ EOF
 resource "aws_cloudwatch_log_group" "instance_orchestrator_scheduler_cloudwatch_log_group" {
   name = "/aws/lambda/${aws_lambda_function.instance_orchestrator_scheduler_lambda.function_name}"
   retention_in_days = "${var.io_scheduler_lambda_log_retention}"
+  tags = "${var.tags}"
 }
 
 
@@ -659,6 +686,7 @@ resource "aws_lambda_function" "instance_orchestrator_budget_driver_lambda" {
   role = "${aws_iam_role.instance_orchestrator_budget_driver_lambda_role.arn}"
   runtime = "go1.x"
   timeout = "${var.io_budget_driver_lambda_timeout}"
+  tags = "${var.tags}"
 }
 
 resource "aws_lambda_permission" "instance_orchestrator_budget_driver_lambda_permission" {
@@ -685,6 +713,7 @@ resource "aws_iam_role" "instance_orchestrator_budget_driver_lambda_role" {
 EOF
   name = "xosphere-instance-orchestrator-budget-driver-lambda-role"
   path = "/"
+  tags = "${var.tags}"
 }
 
 resource "aws_iam_role_policy" "instance_orchestrator_budget_driver_lambda_policy" {
@@ -739,6 +768,7 @@ EOF
 resource "aws_cloudwatch_event_rule" "instance_orchestrator_budget_driver_cloudwatch_event_rule" {
   name = "xosphere-instance-orchestrator-budget-schedule"
   schedule_expression = "cron(${var.budget_lambda_cron_schedule})"
+  tags = "${var.tags}"
 }
 
 resource "aws_cloudwatch_event_target" "instance_orchestrator_budget_driver_cloudwatch_event_target" {
@@ -750,6 +780,7 @@ resource "aws_cloudwatch_event_target" "instance_orchestrator_budget_driver_clou
 resource "aws_cloudwatch_log_group" "instance_orchestrator_budget_driver_cloudwatch_log_group" {
   name = "/aws/lambda/${aws_lambda_function.instance_orchestrator_budget_driver_lambda.function_name}"
   retention_in_days = "${var.io_budget_driver_lambda_log_retention}"
+  tags = "${var.tags}"
 }
 
 // budget processor
@@ -770,6 +801,7 @@ resource "aws_lambda_function" "instance_orchestrator_budget_lambda" {
   role = "${aws_iam_role.instance_orchestrator_budget_lambda_role.arn}"
   runtime = "go1.x"
   timeout = "${var.io_budget_lambda_timeout}"
+  tags = "${var.tags}"
 }
 
 resource "aws_lambda_permission" "instance_orchestrator_budget_lambda_permission" {
@@ -802,6 +834,7 @@ resource "aws_iam_role" "instance_orchestrator_budget_lambda_role" {
 EOF
   name = "xosphere-instance-orchestrator-budget-role"
   path = "/"
+  tags = "${var.tags}"
 }
 
 resource "aws_iam_role_policy" "instance_orchestrator_budget_lambda_policy" {
@@ -855,6 +888,7 @@ EOF
 resource "aws_cloudwatch_log_group" "instance_orchestrator_budget_cloudwatch_log_group" {
   name = "/aws/lambda/${aws_lambda_function.instance_orchestrator_budget_lambda.function_name}"
   retention_in_days = "${var.io_budget_lambda_log_retention}"
+  tags = "${var.tags}"
 }
 
 //snapshot
@@ -875,6 +909,7 @@ resource "aws_lambda_function" "instance_orchestrator_snapshot_creator_lambda" {
   role = "${aws_iam_role.instance_orchestrator_snapshot_creator_role.arn}"
   runtime = "go1.x"
   timeout = "${var.snapshot_creator_lambda_timeout}"
+  tags = "${var.tags}"
 }
 
 resource "aws_lambda_permission" "instance_orchestrator_snapshot_creator_lambda_permission" {
@@ -888,6 +923,7 @@ resource "aws_lambda_permission" "instance_orchestrator_snapshot_creator_lambda_
 resource "aws_cloudwatch_event_rule" "instance_orchestrator_snapshot_creator_cloudwatch_event_rule" {
   name = "xosphere-io-snapshot-creator-schedule"
   schedule_expression = "cron(${var.snapshot_creator_cron_schedule})"
+  tags = "${var.tags}"
 }
 
 resource "aws_cloudwatch_event_target" "instance_orchestrator_snapshot_creator_cloudwatch_event_target" {
@@ -926,6 +962,7 @@ resource "aws_iam_role" "instance_orchestrator_snapshot_creator_role" {
 EOF
   name = "xosphere-instance-orchestrator-snapshot-creator-role"
   path = "/"
+  tags = "${var.tags}"
 }
 
 resource "aws_iam_role_policy" "instance_orchestrator_snapshot_creator_policy" {
@@ -968,6 +1005,7 @@ EOF
 resource "aws_cloudwatch_log_group" "instance_orchestrator_snapshot_creator_cloudwatch_log_group" {
   name = "/aws/lambda/${aws_lambda_function.instance_orchestrator_snapshot_creator_lambda.function_name}"
   retention_in_days = "${var.snapshot_creator_lambda_log_retention}"
+  tags = "${var.tags}"
 }
 
 //AMI cleaner
@@ -987,6 +1025,7 @@ resource "aws_lambda_function" "instance_orchestrator_ami_cleaner_lambda" {
   role = "${aws_iam_role.instance_orchestrator_ami_cleaner_role.arn}"
   runtime = "go1.x"
   timeout = "${var.ami_cleaner_lambda_timeout}"
+  tags = "${var.tags}"
 }
 
 resource "aws_lambda_permission" "instance_orchestrator_ami_cleaner_lambda_permission" {
@@ -1000,6 +1039,7 @@ resource "aws_lambda_permission" "instance_orchestrator_ami_cleaner_lambda_permi
 resource "aws_cloudwatch_event_rule" "instance_orchestrator_ami_cleaner_cloudwatch_event_rule" {
   name = "xosphere-io-ami-cleaner-schedule"
   schedule_expression = "cron(${var.ami_cleaner_cron_schedule})"
+  tags = "${var.tags}"
 }
 
 resource "aws_cloudwatch_event_target" "instance_orchestrator_ami_cleaner_cloudwatch_event_target" {
@@ -1024,6 +1064,7 @@ resource "aws_iam_role" "instance_orchestrator_ami_cleaner_role" {
 EOF
   name = "xosphere-instance-orchestrator-ami-cleaner-role"
   path = "/"
+  tags = "${var.tags}"
 }
 
 resource "aws_iam_role_policy" "instance_orchestrator_ami_cleaner_policy" {
@@ -1057,6 +1098,7 @@ EOF
 resource "aws_cloudwatch_log_group" "instance_orchestrator_ami_cleaner_cloudwatch_log_group" {
   name = "/aws/lambda/${aws_lambda_function.instance_orchestrator_ami_cleaner_lambda.function_name}"
   retention_in_days = "${var.ami_cleaner_lambda_log_retention}"
+  tags = "${var.tags}"
 }
 
 //DLQ handler
@@ -1080,6 +1122,7 @@ resource "aws_lambda_function" "instance_orchestrator_dlq_handler_lambda" {
   role = "${aws_iam_role.instance_orchestrator_dlq_handler_role.arn}"
   runtime = "go1.x"
   timeout = "${var.dlq_handler_lambda_timeout}"
+  tags = "${var.tags}"
 }
 
 resource "aws_lambda_permission" "instance_orchestrator_dlq_handler_lambda_permission" {
@@ -1112,6 +1155,7 @@ resource "aws_iam_role" "instance_orchestrator_dlq_handler_role" {
 EOF
   name = "xosphere-instance-orchestrator-dql-handler-role"
   path = "/"
+  tags = "${var.tags}"
 }
 
 resource "aws_iam_role_policy" "instance_orchestrator_dlq_handler_policy" {
@@ -1152,6 +1196,7 @@ EOF
 resource "aws_cloudwatch_log_group" "instance_orchestrator_dlq_handler_cloudwatch_log_group" {
   name = "/aws/lambda/${aws_lambda_function.instance_orchestrator_dlq_handler_lambda.function_name}"
   retention_in_days = "${var.dlq_handler_lambda_log_retention}"
+  tags = "${var.tags}"
 }
 
 //IO Bridge
@@ -1177,6 +1222,7 @@ resource "aws_lambda_function" "xosphere_io_bridge_lambda" {
     subnet_ids = var.k8s_vpc_subnet_ids
   }
   timeout = "${var.io_bridge_lambda_timeout}"
+  tags = "${var.tags}"
 }
 
 resource "aws_lambda_permission" "xosphere_io_bridge_permission" {
@@ -1207,6 +1253,7 @@ resource "aws_iam_role" "io_bridge_lambda_role" {
 EOF
   name = "xosphere-iobridge-lambda-role"
   path = "/"
+  tags = "${var.tags}"
 }
 
 resource "aws_iam_role_policy" "io_bridge_lambda_policy" {
@@ -1241,4 +1288,5 @@ resource "aws_cloudwatch_log_group" "io_bridge_cloudwatch_log_group" {
 
   name = "/aws/lambda/${aws_lambda_function.xosphere_io_bridge_lambda[count.index].function_name}"
   retention_in_days = "${var.io_bridge_lambda_log_retention}"
+  tags = "${var.tags}"
 }
