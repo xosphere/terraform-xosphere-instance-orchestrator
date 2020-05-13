@@ -60,7 +60,7 @@ variable "terminator_lambda_memory_size" {
 
 variable "terminator_lambda_timeout" {
   description = "Lambda function execution timeout"
-  default = 180
+  default = 900
 }
 
 variable "terminator_lambda_log_retention" {
