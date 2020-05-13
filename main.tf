@@ -157,7 +157,7 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
 	  ],
       "Resource": "*",
       "Condition": {
-        "StringEquals": {"ec2:ResourceTag/xosphere.io/instance-orchestrator/enabled": "true"}
+        "StringLike": {"ec2:ResourceTag/xosphere.io/instance-orchestrator/enabled": "*"}
       }
     },
     {
@@ -520,7 +520,7 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
 	  ],
       "Resource": "*",
       "Condition": {
-        "StringEquals": {"ec2:ResourceTag/xosphere.io/instance-orchestrator/enabled": "true"}
+        "StringLike": {"ec2:ResourceTag/xosphere.io/instance-orchestrator/enabled": "*"}
       }
     },
     {
@@ -855,7 +855,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
 	  ],
       "Resource": "*",
       "Condition": {
-        "StringEquals": {"ec2:ResourceTag/xosphere.io/instance-orchestrator/enabled": "true"}
+        "StringLike": {"ec2:ResourceTag/xosphere.io/instance-orchestrator/enabled": "*"}
       }
     },
     {
