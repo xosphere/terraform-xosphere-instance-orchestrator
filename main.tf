@@ -558,6 +558,22 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
       "Resource": "*"
     },
 	{
+      "Sid": "AllowEC2SpotServiceLinkedRole",
+      "Effect": "Allow",
+      "Action": "iam:CreateServiceLinkedRole",
+      "Resource": "arn:aws:iam::*:role/aws-service-role/spot.amazonaws.com/*",
+      "Condition": {"StringLike": {"iam:AWSServiceName": "spot.amazonaws.com"}}
+    },
+    {
+      "Sid": "AllowEC2SpotServiceLinkedRolePolicies",
+      "Effect": "Allow",
+      "Action": [
+        "iam:AttachRolePolicy",
+        "iam:PutRolePolicy"
+      ],
+      "Resource": "arn:aws:iam::*:role/aws-service-role/spot.amazonaws.com/*"
+    },
+	{
       "Sid": "AllowElasticLoadBalancingServiceLinkedRole",
       "Effect": "Allow",
       "Action": "iam:CreateServiceLinkedRole",
@@ -890,6 +906,22 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
         "elasticloadbalancing:RegisterTargets"
 	  ],
       "Resource": "*"
+    },
+	{
+      "Sid": "AllowEC2SpotServiceLinkedRole",
+      "Effect": "Allow",
+      "Action": "iam:CreateServiceLinkedRole",
+      "Resource": "arn:aws:iam::*:role/aws-service-role/spot.amazonaws.com/*",
+      "Condition": {"StringLike": {"iam:AWSServiceName": "spot.amazonaws.com"}}
+    },
+    {
+      "Sid": "AllowEC2SpotServiceLinkedRolePolicies",
+      "Effect": "Allow",
+      "Action": [
+        "iam:AttachRolePolicy",
+        "iam:PutRolePolicy"
+      ],
+      "Resource": "arn:aws:iam::*:role/aws-service-role/spot.amazonaws.com/*"
     },
 	{
       "Sid": "AllowElasticLoadBalancingServiceLinkedRole",
@@ -1284,6 +1316,22 @@ resource "aws_iam_role_policy" "instance_orchestrator_budget_driver_lambda_polic
       "Condition": {
         "StringEquals": {"iam:PassedToService": "ec2.amazonaws.com"}
       }
+    },
+	{
+      "Sid": "AllowEC2SpotServiceLinkedRole",
+      "Effect": "Allow",
+      "Action": "iam:CreateServiceLinkedRole",
+      "Resource": "arn:aws:iam::*:role/aws-service-role/spot.amazonaws.com/*",
+      "Condition": {"StringLike": {"iam:AWSServiceName": "spot.amazonaws.com"}}
+    },
+    {
+      "Sid": "AllowEC2SpotServiceLinkedRolePolicies",
+      "Effect": "Allow",
+      "Action": [
+        "iam:AttachRolePolicy",
+        "iam:PutRolePolicy"
+      ],
+      "Resource": "arn:aws:iam::*:role/aws-service-role/spot.amazonaws.com/*"
     },
 	{
       "Sid": "AllowElasticLoadBalancingServiceLinkedRole",
