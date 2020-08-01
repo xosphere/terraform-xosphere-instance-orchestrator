@@ -1060,20 +1060,20 @@ resource "aws_cloudwatch_event_rule" "instance_orchestrator_scheduler_cloudwatch
 }
 PATTERN
   name = "xosphere-scheduler-tag-change-cloudwatch-rule"
-  tags = "${var.tags}"
+  tags = var.tags
 }
 
 resource "aws_lambda_permission" "instance_orchestrator_scheduler_lambda_permission" {
   action = "lambda:InvokeFunction"
   function_name = "xosphere-instance-orchestrator-scheduler"
   principal = "events.amazonaws.com"
-  source_arn = "${aws_cloudwatch_event_rule.instance_orchestrator_scheduler_cloudwatch_event_rule.arn}"
+  source_arn = aws_cloudwatch_event_rule.instance_orchestrator_scheduler_cloudwatch_event_rule.arn
   statement_id = "AllowExecutionFromCloudWatch"
 }
 
 resource "aws_cloudwatch_event_target" "instance_orchestrator_scheduler_cloudwatch_event_target" {
-  arn = "${aws_lambda_function.instance_orchestrator_scheduler_lambda.arn}"
-  rule = "${aws_cloudwatch_event_rule.instance_orchestrator_scheduler_cloudwatch_event_rule.name}"
+  arn = aws_lambda_function.instance_orchestrator_scheduler_lambda.arn
+  rule = aws_cloudwatch_event_rule.instance_orchestrator_scheduler_cloudwatch_event_rule.name
   target_id = "xosphere-terminator"
   depends_on = [
     "data.aws_lambda_function.terminator_lambda_function"]
