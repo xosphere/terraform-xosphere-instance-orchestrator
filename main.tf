@@ -1046,7 +1046,7 @@ resource "aws_cloudwatch_event_rule" "instance_orchestrator_scheduler_cloudwatch
   "detail-type": [
     "Tag Change on Resource"
   ],
-  "detail": [
+  "detail": {
     "changed-tag-keys": [
       "xosphere.io/instance-orchestrator/schedule-enabled"
     ],
@@ -1056,14 +1056,14 @@ resource "aws_cloudwatch_event_rule" "instance_orchestrator_scheduler_cloudwatch
     "resource-type": [
       "instance"
     ]
-  ]
+  }
 }
 PATTERN
   name = "xosphere-scheduler-tag-change-cloudwatch-rule"
   tags = var.tags
 }
 
-resource "aws_lambda_permission" "instance_orchestrator_scheduler_lambda_permission" {
+resource "aws_lambda_permission" "instance_orchestrator_scheduler_cloudwatch_event_lambda_permission" {
   action = "lambda:InvokeFunction"
   function_name = "xosphere-instance-orchestrator-scheduler"
   principal = "events.amazonaws.com"
@@ -1076,7 +1076,8 @@ resource "aws_cloudwatch_event_target" "instance_orchestrator_scheduler_cloudwat
   rule = aws_cloudwatch_event_rule.instance_orchestrator_scheduler_cloudwatch_event_rule.name
   target_id = "xosphere-terminator"
   depends_on = [
-    "data.aws_lambda_function.terminator_lambda_function"]
+    data.aws_lambda_function.terminator_lambda_function
+  ]
 }
 
 resource "aws_lambda_permission" "instance_orchestrator_scheduler_lambda_permission" {
