@@ -1092,7 +1092,7 @@ resource "aws_cloudwatch_event_rule" "instance_orchestrator_scheduler_cloudwatch
   "detail-type": [
     "Tag Change on Resource"
   ],
-  "detail": [
+  "detail": {
     "changed-tag-keys": [
       "xosphere.io/instance-orchestrator/schedule-enabled"
     ],
@@ -1102,18 +1102,18 @@ resource "aws_cloudwatch_event_rule" "instance_orchestrator_scheduler_cloudwatch
     "resource-type": [
       "instance"
     ]
-  ]
+  }
 }
 PATTERN
   name = "xosphere-scheduler-tag-change-cloudwatch-rule"
-  tags = "${var.tags}"
+  tags = var.tags
 }
 
-resource "aws_lambda_permission" "instance_orchestrator_scheduler_lambda_permission" {
+resource "aws_lambda_permission" "instance_orchestrator_scheduler_cloudwatch_event_lambda_permission" {
   action = "lambda:InvokeFunction"
   function_name = "xosphere-instance-orchestrator-scheduler"
   principal = "events.amazonaws.com"
-  source_arn = "${aws_cloudwatch_event_rule.instance_orchestrator_scheduler_cloudwatch_event_rule.arn}"
+  source_arn = aws_cloudwatch_event_rule.instance_orchestrator_scheduler_cloudwatch_event_rule.arn
   statement_id = "AllowExecutionFromCloudWatch"
 }
 
