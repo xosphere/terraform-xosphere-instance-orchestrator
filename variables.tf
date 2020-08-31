@@ -45,7 +45,7 @@ variable "lambda_timeout" {
 
 variable "lambda_log_retention" {
   description = "Lambda function log file retention in days"
-  default = 7
+  default = 30
 }
 
 variable "lambda_cron_schedule" {
@@ -70,6 +70,11 @@ variable "terminator_lambda_log_retention" {
 
 variable "snapshot_creator_cron_schedule" {
   description = "Snapshot creator function schedule cron expression"
+  default = "0/15 * * * ? *"
+}
+
+variable "group_inspector_cron_schedule" {
+  description = "Group Inspector function schedule cron expression"
   default = "0/15 * * * ? *"
 }
 
@@ -200,7 +205,37 @@ variable "io_bridge_lambda_timeout" {
 
 variable "io_bridge_lambda_log_retention" {
   description = "Lambda function log file retention in days"
-  default = 7
+  default = 30
+}
+
+variable "io_xogroup_enabler_memory_size" {
+  description = "Memory size allocated to Lambda"
+  default = 256
+}
+
+variable "io_xogroup_enabler_lambda_timeout" {
+  description = "Lambda function execution timeout"
+  default = 90
+}
+
+variable "io_group_inspector_lambda_log_retention" {
+  description = "Lambda function log file retention in days"
+  default = 30
+}
+
+variable "io_group_inspector_memory_size" {
+  description = "Memory size allocated to Lambda"
+  default = 128
+}
+
+variable "io_group_inspector_lambda_timeout" {
+  description = "Lambda function execution timeout"
+  default = 300
+}
+
+variable "io_xogroup_enabler_lambda_log_retention" {
+  description = "Lambda function log file retention in days"
+  default = 30
 }
 
 variable "k8s_vpc_security_group_ids" {
@@ -228,4 +263,14 @@ variable "monthly_budget_grace_period_in_seconds" {
 variable "k8s_drain_timeout_in_mins" {
   description = "Timeout in minutes for K8s node drain request"
   default = 15
+}
+
+variable "sns_arn_resource_pattern" {
+  description = "ARN pattern to use for IAM privileges for publishing to SNS topics"
+  default = "*"
+}
+
+variable "endpoint_url" {
+  description = "URL to Xosphere API"
+  default = "https://portal-api.xosphere.io/v1"
 }

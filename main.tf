@@ -60,12 +60,12 @@ resource "aws_sqs_queue" "instance_orchestrator_budget_queue" {
 resource "aws_lambda_function" "xosphere_terminator_lambda_k8s_enabled" {
   count = length(var.k8s_vpc_security_group_ids) > 0  && length(var.k8s_vpc_subnet_ids) > 0 ? 1 : 0
   s3_bucket = "xosphere-io-releases"
-  s3_key = "terminator-lambda-0.16.6.zip"
+  s3_key = "terminator-lambda-0.17.0.zip"
   description = "Xosphere Terminator"
   environment {
     variables = {
       API_TOKEN = var.api_token
-      ENDPOINT_URL = "https://portal-api.xosphere.io/v1"
+      ENDPOINT_URL = var.endpoint_url
       INSTANCE_STATE_S3_BUCKET = aws_s3_bucket.instance_state_s3_bucket.id
       SQS_QUEUE = aws_sqs_queue.instance_orchestrator_launcher_queue.id
       IO_BRIDGE_NAME = "xosphere-io-bridge"
@@ -84,12 +84,12 @@ resource "aws_lambda_function" "xosphere_terminator_lambda_k8s_enabled" {
 resource "aws_lambda_function" "xosphere_terminator_lambda" {
   count = length(var.k8s_vpc_security_group_ids) == 0  || length(var.k8s_vpc_subnet_ids) == 0 ? 1 : 0
   s3_bucket = "xosphere-io-releases"
-  s3_key = "terminator-lambda-0.16.6.zip"
+  s3_key = "terminator-lambda-0.17.0.zip"
   description = "Xosphere Terminator"
   environment {
     variables = {
       API_TOKEN = var.api_token
-      ENDPOINT_URL = "https://portal-api.xosphere.io/v1"
+      ENDPOINT_URL = var.endpoint_url
       INSTANCE_STATE_S3_BUCKET = aws_s3_bucket.instance_state_s3_bucket.id
       SQS_QUEUE = aws_sqs_queue.instance_orchestrator_launcher_queue.id
       IO_BRIDGE_NAME = "xosphere-io-bridge"
@@ -103,6 +103,50 @@ resource "aws_lambda_function" "xosphere_terminator_lambda" {
   runtime = "go1.x"
   timeout = var.terminator_lambda_timeout
   tags = var.tags
+}
+
+resource "aws_cloudwatch_event_rule" "xosphere_terminator_revert_tag_cloudwatch_event_rule" {
+  description = "CloudWatch Event trigger for Terminator on revert tag value change"
+  event_pattern = <<PATTERN
+{
+  "source": [
+    "aws.tag"
+  ],
+  "detail-type": [
+    "Tag Change on Resource"
+  ],
+  "detail": {
+    "changed-tag-keys": [
+      "xosphere.io/instance-orchestrator/revert"
+    ],
+    "service": [
+      "ec2"
+    ],
+    "resource-type": [
+      "instance"
+    ]
+  }
+}
+PATTERN
+  name = "xosphere-terminator-revert-tag-change-cloudwatch-rule"
+  tags = var.tags
+}
+
+resource "aws_cloudwatch_event_target" "xosphere_terminator_revert_tag_cloudwatch_event_target" {
+  arn = data.aws_lambda_function.terminator_lambda_function.arn
+  rule = aws_cloudwatch_event_rule.xosphere_terminator_revert_tag_cloudwatch_event_rule.name
+  target_id = "xosphere-terminator"
+  depends_on = [
+    data.aws_lambda_function.terminator_lambda_function
+  ]
+}
+
+resource "aws_lambda_permission" "xosphere_terminator_lambda_revert_tag_permission" {
+  action = "lambda:InvokeFunction"
+  function_name = "xosphere-terminator-lambda"
+  principal = "events.amazonaws.com"
+  source_arn = aws_cloudwatch_event_rule.xosphere_terminator_revert_tag_cloudwatch_event_rule.arn
+  statement_id = "AllowExecutionFromCloudWatchRevertTag"
 }
 
 resource "aws_lambda_permission" "xosphere_terminator_lambda_permission" {
@@ -153,6 +197,7 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
       "Effect": "Allow",
       "Action": [
 		"ec2:CreateTags",
+        "ec2:DeleteTags",
 		"ec2:TerminateInstances"
 	  ],
       "Resource": "*",
@@ -165,6 +210,7 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
       "Effect": "Allow",
       "Action": [
 		"ec2:CreateTags",
+        "ec2:DeleteTags",
 		"ec2:TerminateInstances"
 	  ],
       "Resource": "*",
@@ -267,7 +313,7 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
         "Action": [
             "sns:Publish"
         ],
-        "Resource": "arn:aws:sns:*:*:xosphere-*"
+        "Resource": "${var.sns_arn_resource_pattern}"
     },
 	{
         "Sid": "AllowSqsOperationsOnXosphereQueues",
@@ -346,13 +392,13 @@ resource "aws_cloudwatch_event_target" "xosphere_terminator_cloudwatch_event_tar
 resource "aws_lambda_function" "xosphere_instance_orchestrator_lambda_k8s_enabled" {
   count = length(var.k8s_vpc_security_group_ids) > 0  && length(var.k8s_vpc_subnet_ids) > 0 ? 1 : 0
   s3_bucket = "xosphere-io-releases"
-  s3_key = "instance-orchestrator-lambda-0.16.6.zip"
+  s3_key = "instance-orchestrator-lambda-0.17.0.zip"
   description = "Xosphere Instance Orchestrator"
   environment {
     variables = {
       REGIONS = var.regions_enabled
       API_TOKEN = var.api_token
-      ENDPOINT_URL = "https://portal-api.xosphere.io/v1"
+      ENDPOINT_URL = var.endpoint_url
       INSTANCE_STATE_S3_BUCKET = aws_s3_bucket.instance_state_s3_bucket.id
       SQS_QUEUE = aws_sqs_queue.instance_orchestrator_launcher_queue.id
       SQS_SCHEDULER_QUEUE = aws_sqs_queue.instance_orchestrator_schedule_queue.id
@@ -377,13 +423,13 @@ resource "aws_lambda_function" "xosphere_instance_orchestrator_lambda_k8s_enable
 resource "aws_lambda_function" "xosphere_instance_orchestrator_lambda" {
   count = length(var.k8s_vpc_security_group_ids) == 0  || length(var.k8s_vpc_subnet_ids) == 0 ? 1 : 0
   s3_bucket = "xosphere-io-releases"
-  s3_key = "instance-orchestrator-lambda-0.16.6.zip"
+  s3_key = "instance-orchestrator-lambda-0.17.0.zip"
   description = "Xosphere Instance Orchestrator"
   environment {
     variables = {
       REGIONS = var.regions_enabled
       API_TOKEN = var.api_token
-      ENDPOINT_URL = "https://portal-api.xosphere.io/v1"
+      ENDPOINT_URL = var.endpoint_url
       INSTANCE_STATE_S3_BUCKET = aws_s3_bucket.instance_state_s3_bucket.id
       SQS_QUEUE = aws_sqs_queue.instance_orchestrator_launcher_queue.id
       SQS_SCHEDULER_QUEUE = aws_sqs_queue.instance_orchestrator_schedule_queue.id
@@ -692,7 +738,7 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
         "Action": [
             "sns:Publish"
         ],
-        "Resource": "arn:aws:sns:*:*:xosphere-*"
+        "Resource": "${var.sns_arn_resource_pattern}"
     },
 	{
        "Sid": "AllowSqsOperationsOnXosphereQueues",
@@ -761,12 +807,12 @@ resource "aws_cloudwatch_event_target" "xosphere_instance_orchestrator_cloudwatc
 
 resource "aws_lambda_function" "xosphere_instance_orchestrator_launcher_lambda" {
   s3_bucket = "xosphere-io-releases"
-  s3_key = "launcher-lambda-0.16.6.zip"
+  s3_key = "launcher-lambda-0.17.0.zip"
   description = "Xosphere Instance Orchestrator Launcher"
   environment {
     variables = {
       API_TOKEN = var.api_token
-      ENDPOINT_URL = "https://portal-api.xosphere.io/v1"
+      ENDPOINT_URL = var.endpoint_url
       INSTANCE_STATE_S3_BUCKET = aws_s3_bucket.instance_state_s3_bucket.id
       SQS_QUEUE = aws_sqs_queue.instance_orchestrator_launcher_queue.id
     }
@@ -988,7 +1034,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
         "Action": [
             "sns:Publish"
         ],
-        "Resource": "arn:aws:sns:*:*:xosphere-*"
+        "Resource": "${var.sns_arn_resource_pattern}"
     },
 	{
        "Sid": "AllowSqsOperationsOnXosphereQueues",
@@ -1017,12 +1063,12 @@ resource "aws_cloudwatch_log_group" "instance_orchestrator_launcher_cloudwatch_l
 
 resource "aws_lambda_function" "instance_orchestrator_scheduler_lambda" {
   s3_bucket = "xosphere-io-releases"
-  s3_key = "scheduler-lambda-0.16.6.zip"
+  s3_key = "scheduler-lambda-0.17.0.zip"
   description = "Xosphere Instance Orchestrator Scheduler"
   environment {
     variables = {
       API_TOKEN = var.api_token
-      ENDPOINT_URL = "https://portal-api.xosphere.io/v1"
+      ENDPOINT_URL = var.endpoint_url
       INSTANCE_STATE_S3_BUCKET = aws_s3_bucket.instance_state_s3_bucket.id
       SQS_QUEUE = aws_sqs_queue.instance_orchestrator_schedule_queue.id
     }
@@ -1072,11 +1118,9 @@ resource "aws_lambda_permission" "instance_orchestrator_scheduler_lambda_permiss
 }
 
 resource "aws_cloudwatch_event_target" "instance_orchestrator_scheduler_cloudwatch_event_target" {
-  arn = "${aws_lambda_function.instance_orchestrator_scheduler_lambda.arn}"
-  rule = "${aws_cloudwatch_event_rule.instance_orchestrator_scheduler_cloudwatch_event_rule.name}"
-  target_id = "xosphere-terminator"
-  depends_on = [
-    "data.aws_lambda_function.terminator_lambda_function"]
+  arn = aws_lambda_function.instance_orchestrator_scheduler_lambda.arn
+  rule = aws_cloudwatch_event_rule.instance_orchestrator_scheduler_cloudwatch_event_rule.name
+  target_id = "xosphere-instance-orchestrator-scheduler"
 }
 
 resource "aws_lambda_permission" "instance_orchestrator_scheduler_lambda_permission" {
@@ -1233,17 +1277,178 @@ resource "aws_cloudwatch_log_group" "instance_orchestrator_scheduler_cloudwatch_
   tags = var.tags
 }
 
+resource "aws_lambda_function" "instance_orchestrator_scheduler_cloudwatch_event_lambda" {
+  s3_bucket = "xosphere-io-releases"
+  s3_key = "scheduler-cwe-lambda-0.17.0.zip"
+  description = "Xosphere Instance Orchestrator Scheduler On Cloudwatch Event"
+  environment {
+    variables = {
+      API_TOKEN = var.api_token
+      ENDPOINT_URL = var.endpoint_url
+      INSTANCE_STATE_S3_BUCKET = aws_s3_bucket.instance_state_s3_bucket.id
+      SQS_QUEUE = aws_sqs_queue.instance_orchestrator_schedule_queue.id
+    }
+  }
+  function_name = "xosphere-instance-orchestrator-scheduler-cwe"
+  handler = "scheduler-cwe"
+  memory_size = var.io_scheduler_memory_size
+  role = aws_iam_role.instance_orchestrator_scheduler_lambda_role.arn
+  runtime = "go1.x"
+  timeout = var.io_scheduler_lambda_timeout
+  tags = var.tags
+}
+
+resource "aws_cloudwatch_log_group" "instance_orchestrator_scheduler_cloudwatch_event_log_group" {
+  name = "/aws/lambda/${aws_lambda_function.instance_orchestrator_scheduler_cloudwatch_event_lambda.function_name}"
+  retention_in_days = var.io_scheduler_lambda_log_retention
+  tags = var.tags
+}
+
+// Xogroup enabler
+
+resource "aws_lambda_function" "instance_orchestrator_xogroup_enabler_lambda" {
+  s3_bucket = "xosphere-io-releases"
+  s3_key = "xogroup-enabler-lambda-0.17.0.zip"
+  description = "Xosphere Instance Orchestrator Xogroup Enabler"
+  environment {
+    variables = {
+      INSTANCE_STATE_S3_BUCKET = aws_s3_bucket.instance_state_s3_bucket.id
+    }
+  }
+  function_name = "xosphere-instance-orchestrator-xogroup-enabler"
+  handler = "xogroup-enabler"
+  memory_size = var.io_xogroup_enabler_memory_size
+  role = aws_iam_role.instance_orchestrator_xogroup_enabler_lambda_role.arn
+  runtime = "go1.x"
+  timeout = var.io_xogroup_enabler_lambda_timeout
+  tags = var.tags
+}
+
+resource "aws_cloudwatch_event_rule" "instance_orchestrator_xogroup_enabler_cloudwatch_event_rule" {
+  description = "CloudWatch Event trigger for remove xogroup-enabled tag"
+  event_pattern = <<PATTERN
+{
+  "source": [
+    "aws.tag"
+  ],
+  "detail-type": [
+    "Tag Change on Resource"
+  ],
+  "detail": {
+    "changed-tag-keys": [
+      "xosphere.io/instance-orchestrator/xogroup-enabled"
+    ],
+    "service": [
+      "ec2"
+    ],
+    "resource-type": [
+      "instance"
+    ]
+  }
+}
+PATTERN
+  name = "xosphere-xogroup-enabler-tag-change-cloudwatch-rule"
+  tags = var.tags
+}
+
+resource "aws_lambda_permission" "instance_orchestrator_xogroup_enabler_cloudwatch_event_lambda_permission" {
+  action = "lambda:InvokeFunction"
+  function_name = "xosphere-instance-orchestrator-scheduler"
+  principal = "events.amazonaws.com"
+  source_arn = aws_cloudwatch_event_rule.instance_orchestrator_xogroup_enabler_cloudwatch_event_rule.arn
+  statement_id = "AllowXogroupEnablerExecutionFromCloudWatch"
+}
+
+resource "aws_cloudwatch_event_target" "instance_orchestrator_xogroup_enabler_cloudwatch_event_target" {
+  arn = aws_lambda_function.instance_orchestrator_xogroup_enabler_lambda.arn
+  rule = aws_cloudwatch_event_rule.instance_orchestrator_xogroup_enabler_cloudwatch_event_rule.name
+  target_id = "xosphere-xogroup-enabled-tag-change-cloudwatch-rule"
+}
+
+resource "aws_iam_role" "instance_orchestrator_xogroup_enabler_lambda_role" {
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": { "Service": "lambda.amazonaws.com" },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+  name = "xosphere-instance-orchestrator-xogroup-enabler-role"
+  path = "/"
+  tags = var.tags
+}
+
+resource "aws_iam_role_policy" "instance_orchestrator_xogroup_enabler_lambda_policy" {
+  name = "xosphere-instance-orchestrator-xogroup-enabler-policy"
+  role = aws_iam_role.instance_orchestrator_xogroup_enabler_lambda_role.id
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowS3OperationsOnXosphereObjects",
+      "Effect": "Allow",
+      "Action": [
+        "s3:DeleteObject",
+        "s3:GetObject",
+        "s3:ListBucket",
+        "s3:PutObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::xosphere-*/*",
+        "arn:aws:s3:::xosphere-*"
+      ]
+    },
+    {
+      "Sid": "AllowCloudwatchOperationsInXosphereNamespace",
+      "Effect": "Allow",
+      "Action": [
+        "cloudwatch:PutMetricData"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {"cloudwatch:namespace": "xosphere.io/instance-orchestrator/*"}
+      }
+    },
+    {
+      "Sid": "AllowLogOperationsOnXosphereLogGroups",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": [
+        "arn:aws:logs:*:*:log-group:/aws/lambda/xosphere-*",
+        "arn:aws:logs:*:*:log-group:/aws/lambda/xosphere-*:log-stream:*"
+      ]
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_cloudwatch_log_group" "instance_orchestrator_xogroup_enabler_cloudwatch_event_log_group" {
+  name = "/aws/lambda/${aws_lambda_function.instance_orchestrator_xogroup_enabler_lambda.function_name}"
+  retention_in_days = var.io_xogroup_enabler_lambda_log_retention
+  tags = var.tags
+}
 
 //budget Driver
 
 resource "aws_lambda_function" "instance_orchestrator_budget_driver_lambda" {
   s3_bucket = "xosphere-io-releases"
-  s3_key = "budget-driver-lambda-0.16.6.zip"
+  s3_key = "budget-driver-lambda-0.17.0.zip"
   description = "Xosphere Instance Orchestrator Budget Driver"
   environment {
     variables = {
       API_TOKEN = var.api_token
-      ENDPOINT_URL = "https://portal-api.xosphere.io/v1"
+      ENDPOINT_URL = var.endpoint_url
       INSTANCE_STATE_S3_BUCKET = aws_s3_bucket.instance_state_s3_bucket.id
       SQS_BUDGET_QUEUE = aws_sqs_queue.instance_orchestrator_budget_queue.id
       SQS_LAUNCHER_QUEUE = aws_sqs_queue.instance_orchestrator_launcher_queue.id
@@ -1475,7 +1680,7 @@ resource "aws_cloudwatch_log_group" "instance_orchestrator_budget_driver_cloudwa
 
 resource "aws_lambda_function" "instance_orchestrator_budget_lambda" {
   s3_bucket = "xosphere-io-releases"
-  s3_key = "budget-lambda-0.16.6.zip"
+  s3_key = "budget-lambda-0.17.0.zip"
   description = "Xosphere Instance Orchestrator Budget"
   environment {
     variables = {
@@ -1642,7 +1847,7 @@ resource "aws_cloudwatch_log_group" "instance_orchestrator_budget_cloudwatch_log
 
 resource "aws_lambda_function" "instance_orchestrator_snapshot_creator_lambda" {
   s3_bucket = "xosphere-io-releases"
-  s3_key = "snapshot-creator-lambda-0.16.6.zip"
+  s3_key = "snapshot-creator-lambda-0.17.0.zip"
   description = "Xosphere Instance Orchestrator Snapshot Creator"
   environment {
     variables = {
@@ -1741,8 +1946,8 @@ resource "aws_iam_role_policy" "instance_orchestrator_snapshot_creator_policy" {
         "ec2:CreateTags"
 	  ],
       "Resource": [
-        "arn:aws:ec2:us-west-2::snapshot/*",
-        "arn:aws:ec2:us-west-2:*:volume/*"
+        "arn:aws:ec2:*::snapshot/*",
+        "arn:aws:ec2:*:*:volume/*"
       ]
     },
     {
@@ -1756,15 +1961,6 @@ resource "aws_iam_role_policy" "instance_orchestrator_snapshot_creator_policy" {
         "arn:aws:logs:*:*:log-group:/aws/lambda/xosphere-*",
         "arn:aws:logs:*:*:log-group:/aws/lambda/xosphere-*:log-stream:*"
       ]
-    },
-    {
-      "Sid": "AllowSnsOperationsOnXosphereTopics",
-      "Effect": "Allow",
-      "Action": [
-        "sns:Publish",
-        "sns:Subscribe"
-      ],
-      "Resource": "arn:aws:sns:*:*:xosphere-*"
     },
 	{
       "Sid": "AllowSqsOperationsOnXosphereQueues",
@@ -1787,11 +1983,191 @@ resource "aws_cloudwatch_log_group" "instance_orchestrator_snapshot_creator_clou
   tags = var.tags
 }
 
+// Group Inspector
+
+resource "aws_lambda_function" "instance_orchestrator_group_inspector_lambda" {
+  s3_bucket = "xosphere-io-releases"
+  s3_key = "snapshot-creator-lambda-0.17.0.zip"
+  description = "Xosphere Instance Orchestrator Group Inspector"
+  environment {
+    variables = {
+      REGIONS = var.regions_enabled
+      API_TOKEN = var.api_token
+      ENDPOINT_URL = var.endpoint_url
+    }
+  }
+  function_name = "xosphere-instance-orchestrator-group-inspector"
+  handler = "group-inspector"
+  memory_size = var.io_group_inspector_memory_size
+  role = aws_iam_role.instance_orchestrator_group_inspector_role.arn
+  runtime = "go1.x"
+  timeout = var.io_group_inspector_lambda_timeout
+  tags = var.tags
+}
+
+resource "aws_iam_role" "instance_orchestrator_group_inspector_role" {
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": { "Service": "lambda.amazonaws.com" },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+  name = "xosphere-instance-orchestrator-group-inspector-role"
+  path = "/"
+  tags = var.tags
+}
+
+resource "aws_iam_role_policy" "instance_orchestrator_group_inspector_policy" {
+  name = "xosphere-instance-orchestrator-group-inspector-policy"
+  role = aws_iam_role.instance_orchestrator_group_inspector_role.id
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+     {
+      "Sid": "AllowOperationsWithoutResourceRestrictions",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeInstances",
+        "ec2:DescribeRegions",
+        "ec2:DescribeTags",
+        "logs:CreateLogGroup"
+       ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "AllowLogOperationsOnXosphereLogGroups",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+	  ],
+      "Resource": [
+        "arn:aws:logs:*:*:log-group:/aws/lambda/xosphere-*",
+        "arn:aws:logs:*:*:log-group:/aws/lambda/xosphere-*:log-stream:*"
+      ]
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_cloudwatch_event_rule" "instance_orchestrator_group_inspector_tag_change_cloudwatch_event_rule" {
+  description = "CloudWatch Event trigger for Inspector on xogroup-name and Name tag value change"
+  event_pattern = <<PATTERN
+{
+  "source": [
+    "aws.tag"
+  ],
+  "detail-type": [
+    "Tag Change on Resource"
+  ],
+  "detail": {
+    "changed-tag-keys": [
+      "Name",
+      "xosphere.io/instance-orchestrator/xogroup-name"
+    ],
+    "service": [
+      "ec2"
+    ],
+    "resource-type": [
+      "instance"
+    ]
+  }
+}
+PATTERN
+  name = "xosphere-inspector-tag-change-cloudwatch-rule"
+  tags = var.tags
+}
+
+resource "aws_lambda_permission" "instance_orchestrator_group_inspector_cloudwatch_event_lambda_permission" {
+  action = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.instance_orchestrator_group_inspector_lambda.function_name
+  principal = "events.amazonaws.com"
+  source_arn = aws_cloudwatch_event_rule.instance_orchestrator_group_inspector_tag_change_cloudwatch_event_rule.arn
+  statement_id = "AllowGroupInspectorExecutionFromCloudWatchTagChange"
+}
+
+resource "aws_cloudwatch_event_target" "instance_orchestrator_group_inspector_tag_change_cloudwatch_event_target" {
+  arn = aws_lambda_function.instance_orchestrator_group_inspector_lambda.arn
+  rule = aws_cloudwatch_event_rule.instance_orchestrator_group_inspector_tag_change_cloudwatch_event_rule.name
+  target_id = "xosphere-group-inspector-tag-change-cloudwatch-rule"
+}
+
+resource "aws_cloudwatch_event_rule" "instance_orchestrator_group_inspector_ec2_state_change_cloudwatch_event_rule" {
+  description = "CloudWatch Event trigger for Inspector on EC2 state change"
+  event_pattern = <<PATTERN
+{
+  "source": [
+    "aws.ec2"
+  ],
+  "detail-type": [
+    "EC2 Instance State-change Notification"
+  ],
+  "detail": {
+    "state": [
+      "pending",
+      "terminated"
+    ]
+  }
+}
+PATTERN
+  name = "xosphere-inspector-ec2-state-change-cloudwatch-rule"
+  tags = var.tags
+}
+
+resource "aws_lambda_permission" "instance_orchestrator_group_inspector_ec2_state_change_cloudwatch_event_lambda_permission" {
+  action = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.instance_orchestrator_group_inspector_lambda.function_name
+  principal = "events.amazonaws.com"
+  source_arn = aws_cloudwatch_event_rule.instance_orchestrator_group_inspector_ec2_state_change_cloudwatch_event_rule.arn
+  statement_id = "AllowGroupInspectorExecutionFromCloudWatchEc2StateChange"
+}
+
+resource "aws_cloudwatch_event_target" "instance_orchestrator_group_inspector_ec2_state_change_cloudwatch_event_target" {
+  arn = aws_lambda_function.instance_orchestrator_group_inspector_lambda.arn
+  rule = aws_cloudwatch_event_rule.instance_orchestrator_group_inspector_ec2_state_change_cloudwatch_event_rule.name
+  target_id = "xosphere-inspector-ec2-state-change-cloudwatch-rule"
+}
+
+resource "aws_cloudwatch_log_group" "instance_orchestrator_group_inspector_cloudwatch_log_group" {
+  name = "/aws/lambda/${aws_lambda_function.instance_orchestrator_group_inspector_lambda.function_name}"
+  retention_in_days = var.io_group_inspector_lambda_log_retention
+  tags = var.tags
+}
+
+resource "aws_cloudwatch_event_rule" "instance_orchestrator_group_inspector_schedule_cloudwatch_event_rule" {
+  name = "xosphere-io-group-inspector-schedule"
+  schedule_expression = "cron(${var.group_inspector_cron_schedule})"
+  tags = var.tags
+}
+
+resource "aws_lambda_permission" "instance_orchestrator_group_inspector_schedule_cloudwatch_event_lambda_permission" {
+  action = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.instance_orchestrator_group_inspector_lambda.function_name
+  principal = "events.amazonaws.com"
+  source_arn = aws_cloudwatch_event_rule.instance_orchestrator_group_inspector_schedule_cloudwatch_event_rule.arn
+  statement_id = "AllowGroupInspectorExecutionFromCloudWatchSchedule"
+}
+
+resource "aws_cloudwatch_event_target" "xosphere_instance_orchestrator_group_inspector_schedule_cloudwatch_event_target" {
+  arn = aws_lambda_function.instance_orchestrator_group_inspector_lambda.arn
+  rule = aws_cloudwatch_event_rule.instance_orchestrator_group_inspector_schedule_cloudwatch_event_rule.name
+  target_id = "xosphere-instance-orchestrator-group-inspector-schedule"
+}
+
 //AMI cleaner
 
 resource "aws_lambda_function" "instance_orchestrator_ami_cleaner_lambda" {
   s3_bucket = "xosphere-io-releases"
-  s3_key = "ami-cleaner-lambda-0.16.6.zip"
+  s3_key = "ami-cleaner-lambda-0.17.0.zip"
   description = "Xosphere Instance Orchestrator AMI Cleaner"
   environment {
     variables = {
@@ -1892,12 +2268,12 @@ resource "aws_cloudwatch_log_group" "instance_orchestrator_ami_cleaner_cloudwatc
 
 resource "aws_lambda_function" "instance_orchestrator_dlq_handler_lambda" {
   s3_bucket = "xosphere-io-releases"
-  s3_key = "dlq-handler-lambda-0.16.6.zip"
+  s3_key = "dlq-handler-lambda-0.17.0.zip"
   description = "Xosphere Instance Orchestrator Dead-Letter Queue Handler"
   environment {
     variables = {
       API_TOKEN = var.api_token
-      ENDPOINT_URL = "https://portal-api.xosphere.io/v1"
+      ENDPOINT_URL = var.endpoint_url
       INSTANCE_STATE_S3_BUCKET = aws_s3_bucket.instance_state_s3_bucket.id
       SQS_QUEUE = aws_sqs_queue.instance_orchestrator_schedule_queue.id
       DEAD_LETTER_QUEUE = aws_sqs_queue.instance_orchestrator_launcher_dlq.id
@@ -2017,7 +2393,7 @@ resource "aws_lambda_function" "xosphere_io_bridge_lambda" {
   count = length(var.k8s_vpc_security_group_ids) > 0  && length(var.k8s_vpc_subnet_ids) > 0 ? 1 : 0
 
   s3_bucket = "xosphere-io-releases"
-  s3_key = "iobridge-lambda-0.16.6.zip"
+  s3_key = "iobridge-lambda-0.17.0.zip"
   description = "Xosphere IO-Bridge"
   environment {
     variables = {
