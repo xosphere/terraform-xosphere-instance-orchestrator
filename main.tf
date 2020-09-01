@@ -1111,16 +1111,16 @@ PATTERN
 
 resource "aws_lambda_permission" "instance_orchestrator_scheduler_cloudwatch_event_lambda_permission" {
   action = "lambda:InvokeFunction"
-  function_name = "xosphere-instance-orchestrator-scheduler"
+  function_name = aws_lambda_function.instance_orchestrator_scheduler_cloudwatch_event_lambda.function_name
   principal = "events.amazonaws.com"
   source_arn = aws_cloudwatch_event_rule.instance_orchestrator_scheduler_cloudwatch_event_rule.arn
   statement_id = "AllowExecutionFromCloudWatch"
 }
 
 resource "aws_cloudwatch_event_target" "instance_orchestrator_scheduler_cloudwatch_event_target" {
-  arn = aws_lambda_function.instance_orchestrator_scheduler_lambda.arn
+  arn = aws_lambda_function.instance_orchestrator_scheduler_cloudwatch_event_lambda.arn
   rule = aws_cloudwatch_event_rule.instance_orchestrator_scheduler_cloudwatch_event_rule.name
-  target_id = "xosphere-instance-orchestrator-scheduler"
+  target_id = "xosphere-instance-orchestrator-scheduler-cwe"
 }
 
 resource "aws_lambda_permission" "instance_orchestrator_scheduler_lambda_permission" {
