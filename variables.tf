@@ -28,6 +28,11 @@ variable "enable_cloudwatch" {
   default = "false"
 }
 
+variable "enable_ecs" {
+  description = "Enable processing for ecs cluster. By disabling this the AWS API calls can be reduced."
+  default = "true"
+}
+
 variable "lambda_archive" {
   description = "Name of the archive file containing the Lamda code"
   default = "./instance-orchestrator-lambda.zip"
