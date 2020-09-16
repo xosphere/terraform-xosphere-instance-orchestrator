@@ -425,7 +425,7 @@ resource "aws_lambda_function" "xosphere_instance_orchestrator_lambda_k8s_enable
 
 resource "aws_lambda_function_event_invoke_config" "xosphere_instance_orchestrator_lambda_k8s_enabled_invoke_config" {
   count = length(var.k8s_vpc_security_group_ids) == 0  || length(var.k8s_vpc_subnet_ids) == 0 ? 1 : 0
-  function_name = aws_lambda_function.xosphere_instance_orchestrator_lambda_k8s_enabled.function_name
+  function_name = aws_lambda_function.xosphere_instance_orchestrator_lambda_k8s_enabled[count.index].function_name
   maximum_retry_attempts = 0
   qualifier = "$LATEST"
 }
@@ -464,7 +464,7 @@ resource "aws_lambda_function" "xosphere_instance_orchestrator_lambda" {
 
 resource "aws_lambda_function_event_invoke_config" "xosphere_instance_orchestrator_lambda_invoke_config" {
   count = length(var.k8s_vpc_security_group_ids) == 0  || length(var.k8s_vpc_subnet_ids) == 0 ? 1 : 0
-  function_name = aws_lambda_function.xosphere_instance_orchestrator_lambda.function_name
+  function_name = aws_lambda_function.xosphere_instance_orchestrator_lambda[count.index].function_name
   maximum_retry_attempts = 0
   qualifier = "$LATEST"
 }
