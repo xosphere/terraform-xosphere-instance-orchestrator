@@ -60,7 +60,7 @@ resource "aws_sqs_queue" "instance_orchestrator_budget_queue" {
 resource "aws_lambda_function" "xosphere_terminator_lambda_k8s_enabled" {
   count = length(var.k8s_vpc_security_group_ids) > 0  && length(var.k8s_vpc_subnet_ids) > 0 ? 1 : 0
   s3_bucket = "xosphere-io-releases"
-  s3_key = "terminator-lambda-0.17.2.zip"
+  s3_key = "terminator-lambda-0.17.3.zip"
   description = "Xosphere Terminator"
   environment {
     variables = {
@@ -85,7 +85,7 @@ resource "aws_lambda_function" "xosphere_terminator_lambda_k8s_enabled" {
 resource "aws_lambda_function" "xosphere_terminator_lambda" {
   count = length(var.k8s_vpc_security_group_ids) == 0  || length(var.k8s_vpc_subnet_ids) == 0 ? 1 : 0
   s3_bucket = "xosphere-io-releases"
-  s3_key = "terminator-lambda-0.17.2.zip"
+  s3_key = "terminator-lambda-0.17.3.zip"
   description = "Xosphere Terminator"
   environment {
     variables = {
@@ -394,7 +394,7 @@ resource "aws_cloudwatch_event_target" "xosphere_terminator_cloudwatch_event_tar
 resource "aws_lambda_function" "xosphere_instance_orchestrator_lambda_k8s_enabled" {
   count = length(var.k8s_vpc_security_group_ids) > 0  && length(var.k8s_vpc_subnet_ids) > 0 ? 1 : 0
   s3_bucket = "xosphere-io-releases"
-  s3_key = "instance-orchestrator-lambda-0.17.2.zip"
+  s3_key = "instance-orchestrator-lambda-0.17.3.zip"
   description = "Xosphere Instance Orchestrator"
   environment {
     variables = {
@@ -433,7 +433,7 @@ resource "aws_lambda_function_event_invoke_config" "xosphere_instance_orchestrat
 resource "aws_lambda_function" "xosphere_instance_orchestrator_lambda" {
   count = length(var.k8s_vpc_security_group_ids) == 0  || length(var.k8s_vpc_subnet_ids) == 0 ? 1 : 0
   s3_bucket = "xosphere-io-releases"
-  s3_key = "instance-orchestrator-lambda-0.17.2.zip"
+  s3_key = "instance-orchestrator-lambda-0.17.3.zip"
   description = "Xosphere Instance Orchestrator"
   environment {
     variables = {
@@ -825,7 +825,7 @@ resource "aws_cloudwatch_event_target" "xosphere_instance_orchestrator_cloudwatc
 
 resource "aws_lambda_function" "xosphere_instance_orchestrator_launcher_lambda" {
   s3_bucket = "xosphere-io-releases"
-  s3_key = "launcher-lambda-0.17.2.zip"
+  s3_key = "launcher-lambda-0.17.3.zip"
   description = "Xosphere Instance Orchestrator Launcher"
   environment {
     variables = {
@@ -1081,7 +1081,7 @@ resource "aws_cloudwatch_log_group" "instance_orchestrator_launcher_cloudwatch_l
 
 resource "aws_lambda_function" "instance_orchestrator_scheduler_lambda" {
   s3_bucket = "xosphere-io-releases"
-  s3_key = "scheduler-lambda-0.17.2.zip"
+  s3_key = "scheduler-lambda-0.17.3.zip"
   description = "Xosphere Instance Orchestrator Scheduler"
   environment {
     variables = {
@@ -1297,7 +1297,7 @@ resource "aws_cloudwatch_log_group" "instance_orchestrator_scheduler_cloudwatch_
 
 resource "aws_lambda_function" "instance_orchestrator_scheduler_cloudwatch_event_lambda" {
   s3_bucket = "xosphere-io-releases"
-  s3_key = "scheduler-cwe-lambda-0.17.2.zip"
+  s3_key = "scheduler-cwe-lambda-0.17.3.zip"
   description = "Xosphere Instance Orchestrator Scheduler On Cloudwatch Event"
   environment {
     variables = {
@@ -1326,7 +1326,7 @@ resource "aws_cloudwatch_log_group" "instance_orchestrator_scheduler_cloudwatch_
 
 resource "aws_lambda_function" "instance_orchestrator_xogroup_enabler_lambda" {
   s3_bucket = "xosphere-io-releases"
-  s3_key = "xogroup-enabler-lambda-0.17.2.zip"
+  s3_key = "xogroup-enabler-lambda-0.17.3.zip"
   description = "Xosphere Instance Orchestrator Xogroup Enabler"
   environment {
     variables = {
@@ -1366,7 +1366,8 @@ resource "aws_cloudwatch_event_rule" "instance_orchestrator_xogroup_enabler_clou
       "xosphere.io/instance-orchestrator/instance-launch-error-topic-arn",
       "xosphere.io/instance-orchestrator/instance-terminate-topic-arn",
       "xosphere.io/instance-orchestrator/instance-terminate-error-topic-arn",
-      "xosphere.io/instance-orchestrator/alert-topic-arn"
+      "xosphere.io/instance-orchestrator/alert-topic-arn",
+      "xosphere.io/instance-orchestrator/xogroup-name"
     ],
     "service": [
       "ec2"
@@ -1383,7 +1384,7 @@ PATTERN
 
 resource "aws_lambda_permission" "instance_orchestrator_xogroup_enabler_cloudwatch_event_lambda_permission" {
   action = "lambda:InvokeFunction"
-  function_name = "xosphere-instance-orchestrator-scheduler"
+  function_name = "xosphere-instance-orchestrator-xogroup-enabler"
   principal = "events.amazonaws.com"
   source_arn = aws_cloudwatch_event_rule.instance_orchestrator_xogroup_enabler_cloudwatch_event_rule.arn
   statement_id = "AllowXogroupEnablerExecutionFromCloudWatch"
@@ -1492,7 +1493,7 @@ resource "aws_cloudwatch_log_group" "instance_orchestrator_xogroup_enabler_cloud
 
 resource "aws_lambda_function" "instance_orchestrator_budget_driver_lambda" {
   s3_bucket = "xosphere-io-releases"
-  s3_key = "budget-driver-lambda-0.17.2.zip"
+  s3_key = "budget-driver-lambda-0.17.3.zip"
   description = "Xosphere Instance Orchestrator Budget Driver"
   environment {
     variables = {
@@ -1729,7 +1730,7 @@ resource "aws_cloudwatch_log_group" "instance_orchestrator_budget_driver_cloudwa
 
 resource "aws_lambda_function" "instance_orchestrator_budget_lambda" {
   s3_bucket = "xosphere-io-releases"
-  s3_key = "budget-lambda-0.17.2.zip"
+  s3_key = "budget-lambda-0.17.3.zip"
   description = "Xosphere Instance Orchestrator Budget"
   environment {
     variables = {
@@ -1896,7 +1897,7 @@ resource "aws_cloudwatch_log_group" "instance_orchestrator_budget_cloudwatch_log
 
 resource "aws_lambda_function" "instance_orchestrator_snapshot_creator_lambda" {
   s3_bucket = "xosphere-io-releases"
-  s3_key = "snapshot-creator-lambda-0.17.2.zip"
+  s3_key = "snapshot-creator-lambda-0.17.3.zip"
   description = "Xosphere Instance Orchestrator Snapshot Creator"
   environment {
     variables = {
@@ -2036,7 +2037,7 @@ resource "aws_cloudwatch_log_group" "instance_orchestrator_snapshot_creator_clou
 
 resource "aws_lambda_function" "instance_orchestrator_group_inspector_lambda" {
   s3_bucket = "xosphere-io-releases"
-  s3_key = "snapshot-creator-lambda-0.17.2.zip"
+  s3_key = "snapshot-creator-lambda-0.17.3.zip"
   description = "Xosphere Instance Orchestrator Group Inspector"
   environment {
     variables = {
@@ -2216,7 +2217,7 @@ resource "aws_cloudwatch_event_target" "xosphere_instance_orchestrator_group_ins
 
 resource "aws_lambda_function" "instance_orchestrator_ami_cleaner_lambda" {
   s3_bucket = "xosphere-io-releases"
-  s3_key = "ami-cleaner-lambda-0.17.2.zip"
+  s3_key = "ami-cleaner-lambda-0.17.3.zip"
   description = "Xosphere Instance Orchestrator AMI Cleaner"
   environment {
     variables = {
@@ -2317,7 +2318,7 @@ resource "aws_cloudwatch_log_group" "instance_orchestrator_ami_cleaner_cloudwatc
 
 resource "aws_lambda_function" "instance_orchestrator_dlq_handler_lambda" {
   s3_bucket = "xosphere-io-releases"
-  s3_key = "dlq-handler-lambda-0.17.2.zip"
+  s3_key = "dlq-handler-lambda-0.17.3.zip"
   description = "Xosphere Instance Orchestrator Dead-Letter Queue Handler"
   environment {
     variables = {
@@ -2442,7 +2443,7 @@ resource "aws_lambda_function" "xosphere_io_bridge_lambda" {
   count = length(var.k8s_vpc_security_group_ids) > 0  && length(var.k8s_vpc_subnet_ids) > 0 ? 1 : 0
 
   s3_bucket = "xosphere-io-releases"
-  s3_key = "iobridge-lambda-0.17.2.zip"
+  s3_key = "iobridge-lambda-0.17.3.zip"
   description = "Xosphere IO-Bridge"
   environment {
     variables = {
