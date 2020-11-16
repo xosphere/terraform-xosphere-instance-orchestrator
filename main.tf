@@ -704,7 +704,7 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
       }
     },
     {
-      "Sid": "AllowPassRoleToEmc2Instances",
+      "Sid": "AllowPassRoleToEc2Instances",
       "Effect": "Allow",
       "Action": [
 		"iam:PassRole"
