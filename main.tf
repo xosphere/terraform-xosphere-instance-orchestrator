@@ -1,6 +1,6 @@
 locals {
   version = "0.20.0"
-  api_token_arn = "arn:aws:secretsmanager:us-west-2:143723790106:secret:customer/${var.customer_id}-??????"
+  api_token_arn = "arn:aws:secretsmanager:us-west-2:143723790106:secret:customer/${var.customer_id}"
   endpoint_url = "https://portal-api.xosphere.io/v1"
   regions = join(",", var.regions_enabled)
 }
@@ -613,7 +613,7 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
         "Action": [
             "secretsmanager:GetSecretValue"
         ],
-        "Resource": "${local.api_token_arn}"
+        "Resource": "${local.api_token_arn}-??????"
     },
     {
         "Sid": "AllowKmsOperations",
@@ -1055,7 +1055,7 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
         "Action": [
             "secretsmanager:GetSecretValue"
         ],
-        "Resource": "${local.api_token_arn}"
+        "Resource": "${local.api_token_arn}-??????"
     },
     {
         "Sid": "AllowKmsOperations",
@@ -1345,7 +1345,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
         "Action": [
             "secretsmanager:GetSecretValue"
         ],
-        "Resource": "${local.api_token_arn}"
+        "Resource": "${local.api_token_arn}-??????"
     },
     {
         "Sid": "AllowKmsOperations",
@@ -1541,7 +1541,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_scheduler_lambda_policy" {
         "Action": [
             "secretsmanager:GetSecretValue"
         ],
-        "Resource": "${local.api_token_arn}"
+        "Resource": "${local.api_token_arn}-??????"
     },
     {
         "Sid": "AllowKmsOperations",
@@ -1926,7 +1926,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_budget_driver_lambda_polic
         "Action": [
             "secretsmanager:GetSecretValue"
         ],
-        "Resource": "${local.api_token_arn}"
+        "Resource": "${local.api_token_arn}-??????"
     },
     {
         "Sid": "AllowKmsOperations",
@@ -2361,7 +2361,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_group_inspector_policy" {
         "Action": [
             "secretsmanager:GetSecretValue"
         ],
-        "Resource": "${local.api_token_arn}"
+        "Resource": "${local.api_token_arn}-??????"
     },
     {
         "Sid": "AllowKmsOperations",
@@ -2614,7 +2614,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_dlq_handler_policy" {
         "Action": [
             "secretsmanager:GetSecretValue"
         ],
-        "Resource": "${local.api_token_arn}"
+        "Resource": "${local.api_token_arn}-??????"
     },
     {
         "Sid": "AllowKmsOperations",
