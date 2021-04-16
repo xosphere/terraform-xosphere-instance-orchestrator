@@ -1,5 +1,6 @@
 # Xosphere Instance Orchestration configuration
-variable "api_token" {
+variable "customer_id" {
+
 }
 
 variable "tags" {
@@ -20,7 +21,7 @@ variable "pct_on_demand" {
 
 variable "regions_enabled" {
   description = "Regions enabled for Instance Orchestrator"
-  default = "us-east-1,us-west-2"
+  default = ["us-east-1","us-west-2"]
 }
 
 variable "enable_cloudwatch" {
@@ -275,7 +276,7 @@ variable "sns_arn_resource_pattern" {
   default = "*"
 }
 
-variable "endpoint_url" {
-  description = "URL to Xosphere API"
-  default = "https://portal-api.xosphere.io/v1"
+variable "enable_auto_support" {
+  description = "Enable Auto Support"
+  default = 1
 }
