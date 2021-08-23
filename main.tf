@@ -1,5 +1,5 @@
 locals {
-  version = "0.20.0"
+  version = "0.21.2"
   api_token_arn = "arn:aws:secretsmanager:us-west-2:143723790106:secret:customer/${var.customer_id}"
   endpoint_url = "https://portal-api.xosphere.io/v1"
   regions = join(",", var.regions_enabled)
@@ -1775,6 +1775,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_budget_driver_lambda_polic
         "autoscaling:DescribeTags",
         "ec2:DescribeAccountAttributes",
         "ec2:DescribeAddresses",
+        "ec2:DescribeImages",
         "ec2:DescribeInstanceAttribute",
         "ec2:DescribeInstanceCreditSpecifications",
         "ec2:DescribeInstanceStatus",
@@ -2029,6 +2030,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_budget_lambda_policy" {
       "Sid": "AllowOperationsWithoutResourceRestrictions",
       "Effect": "Allow",
       "Action": [
+        "ec2:DescribeImages",
         "ec2:DescribeInstances",
         "ec2:DescribeTags",
         "ec2:DescribeInstanceStatus",
