@@ -1,5 +1,5 @@
 locals {
-  version = "0.21.2"
+  version = "0.21.3"
   api_token_arn = "arn:aws:secretsmanager:us-west-2:143723790106:secret:customer/${var.customer_id}"
   endpoint_url = "https://portal-api.xosphere.io/v1"
   regions = join(",", var.regions_enabled)
