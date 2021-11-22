@@ -1,5 +1,5 @@
 locals {
-  version = "0.21.3"
+  version = "0.21.5"
   api_token_arn = "arn:aws:secretsmanager:us-west-2:143723790106:secret:customer/${var.customer_id}"
   endpoint_url = "https://portal-api.xosphere.io/v1"
   regions = join(",", var.regions_enabled)
@@ -506,11 +506,19 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
       "Effect": "Allow",
       "Action": [
 		"ecs:DescribeContainerInstances",
-		"ecs:ListContainerInstances",
         "ecs:ListTasks",
 		"ecs:UpdateContainerInstancesState"
 	  ],
       "Resource": "arn:*:ecs:*:*:container-instance/*"
+    },
+    {
+      "Sid": "AllowEcsClusterOperations",
+      "Effect": "Allow",
+      "Action": [
+		"ecs:ListContainerInstances"
+	  ],
+      "Resource": "arn:*:ecs:*:*:cluster/*"
+
     },
 	{
       "Sid": "AllowAutoScalingServiceLinkedRole",
@@ -888,13 +896,20 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
       "Sid": "AllowEcsOperations",
       "Effect": "Allow",
       "Action": [
-        "ecs:DeregisterContainerInstance",
         "ecs:DescribeContainerInstances",
-        "ecs:ListContainerInstances",
         "ecs:ListTasks",
         "ecs:UpdateContainerInstancesState"
 	  ],
-      "Resource": "*"
+      "Resource": "arn:*:ecs:*:*:container-instance/*"
+    },
+    {
+      "Sid": "AllowEcsClusterOperations",
+      "Effect": "Allow",
+      "Action": [
+        "ecs:DeregisterContainerInstance",
+        "ecs:ListContainerInstances"
+	  ],
+      "Resource": "arn:*:ecs:*:*:cluster/*"
     },
     {
       "Sid": "AllowLoadBalancingOperations",
