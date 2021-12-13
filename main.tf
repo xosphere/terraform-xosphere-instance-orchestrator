@@ -1006,7 +1006,7 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
       "Action": [
 		"iam:PassRole"
 	  ],
-      "Resource": "*",
+      "Resource": "${var.passrole_arn_resource_pattern}",
       "Condition": {
         "StringEquals": {"iam:PassedToService": "ec2.amazonaws.com"}
       }
@@ -1300,7 +1300,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
       "Action": [
 		"iam:PassRole"
 	  ],
-      "Resource": "*",
+      "Resource": "${var.passrole_arn_resource_pattern}",
       "Condition": {
         "StringEquals": {"iam:PassedToService": "ec2.amazonaws.com"}
       }
@@ -1846,7 +1846,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_budget_driver_lambda_polic
       "Action": [
 		"iam:PassRole"
 	  ],
-      "Resource": "*",
+      "Resource": "${var.passrole_arn_resource_pattern}",
       "Condition": {
         "StringEquals": {"iam:PassedToService": "ec2.amazonaws.com"}
       }

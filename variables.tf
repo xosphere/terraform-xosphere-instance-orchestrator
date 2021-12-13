@@ -276,6 +276,11 @@ variable "sns_arn_resource_pattern" {
   default = "*"
 }
 
+variable "passrole_arn_resource_pattern" {
+  description = "ARN pattern to use for IAM PassRole for EC2"
+  default = "*"
+}
+
 variable "enable_auto_support" {
   description = "Enable Auto Support"
   default = 1
