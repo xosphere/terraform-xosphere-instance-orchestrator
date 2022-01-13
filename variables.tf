@@ -281,6 +281,11 @@ variable "passrole_arn_resource_pattern" {
   default = "*"
 }
 
+variable "run_instance_arn_resource_pattern" {
+  description = "ARN resource pattern to use for RunInstance"
+  default = "*"
+}
+
 variable "enable_auto_support" {
   description = "Enable Auto Support"
   default = 1

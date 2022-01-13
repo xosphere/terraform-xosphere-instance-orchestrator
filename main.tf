@@ -857,13 +857,20 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
       "Resource": "*"
     },
     {
+      "Sid": "AllowEc2CreateTags",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+	  ],
+      "Resource": "*"
+    },
+    {
       "Sid": "AllowEc2RunInstances",
       "Effect": "Allow",
       "Action": [
-        "ec2:CreateTags",
         "ec2:RunInstances"
 	  ],
-      "Resource": "*"
+      "Resource": "${var.run_instance_arn_resource_pattern}"
     },
     {
       "Sid": "AllowEc2OperationsOnEnabledAsgs",
@@ -1207,13 +1214,20 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
       }
     },
     {
+      "Sid": "AllowEc2CreateTags",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+	  ],
+      "Resource": "*"
+    },
+    {
       "Sid": "AllowEc2RunInstances",
       "Effect": "Allow",
       "Action": [
-        "ec2:CreateTags",
         "ec2:RunInstances"
 	  ],
-      "Resource": "*"
+      "Resource": "${var.run_instance_arn_resource_pattern}"
     },
     {
       "Sid": "AllowEc2OperationsOnEnabledAsgs",
@@ -1818,13 +1832,20 @@ resource "aws_iam_role_policy" "instance_orchestrator_budget_driver_lambda_polic
       }
     },
     {
+      "Sid": "AllowEc2CreateTags",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+	  ],
+      "Resource": "*"
+    },
+    {
       "Sid": "AllowEc2RunInstances",
       "Effect": "Allow",
       "Action": [
-        "ec2:CreateTags",
         "ec2:RunInstances"
 	  ],
-      "Resource": "*"
+      "Resource": "${var.run_instance_arn_resource_pattern}"
     },
     {
       "Sid": "AllowEc2OperationsOnBudgets",
