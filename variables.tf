@@ -51,7 +51,7 @@ variable "lambda_timeout" {
 
 variable "lambda_log_retention" {
   description = "Lambda function log file retention in days"
-  default = 30
+  default = 7
 }
 
 variable "lambda_cron_schedule" {
@@ -131,7 +131,7 @@ variable "io_budget_driver_lambda_timeout" {
 
 variable "io_budget_driver_lambda_log_retention" {
   description = "Lambda function log file retention in days"
-  default = 30
+  default = 7
 }
 
 variable "budget_lambda_cron_schedule" {
@@ -151,7 +151,7 @@ variable "io_budget_lambda_timeout" {
 
 variable "io_budget_lambda_log_retention" {
   description = "Lambda function log file retention in days"
-  default = 30
+  default = 7
 }
 
 variable "snapshot_creator_memory_size" {
@@ -211,7 +211,7 @@ variable "io_bridge_lambda_timeout" {
 
 variable "io_bridge_lambda_log_retention" {
   description = "Lambda function log file retention in days"
-  default = 30
+  default = 7
 }
 
 variable "io_xogroup_enabler_memory_size" {

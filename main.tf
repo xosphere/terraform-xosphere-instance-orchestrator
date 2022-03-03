@@ -210,7 +210,7 @@ resource "aws_lambda_event_source_mapping" "xosphere_event_router_event_source_m
 
 resource "aws_lambda_permission" "xosphere_event_router_lambda_permission" {
   action = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.xosphere_event_router_lambda.function_name
+  function_name = aws_lambda_function.xosphere_event_router_lambda.arn
   principal = "sqs.amazonaws.com"
   source_arn = aws_sqs_queue.instance_orchestrator_event_router_queue.arn
 }
@@ -441,13 +441,13 @@ resource "aws_iam_role" "xosphere_terminator_role" {
   ]
 }
 EOF
-  name = "xosphere-terminator-role"
+  name = "xosphere-terminator-lambda-role"
   path = "/"
   tags = var.tags
 }
 
 resource "aws_iam_role_policy" "xosphere_terminator_policy" {
-  name = "xosphere-terminator-policy"
+  name = "xosphere-terminator-lambda-policy"
   role = aws_iam_role.xosphere_terminator_role.id
   policy = <<EOF
 {
@@ -491,7 +491,7 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
 	  ],
       "Resource": "arn:*:ec2:*:*:instance/*",
       "Condition": {
-        "StringLike": {"ec2:ResourceTag/xosphere.io/instance-orchestrator/enabled": "*"}
+        "StringLike": {"ec2:ResourceTag/xosphere.io/instance-orchestrator/enabled": ["*"]}
       }
     },
     {
@@ -504,7 +504,7 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
 	  ],
       "Resource": "arn:*:ec2:*:*:instance/*",
       "Condition": {
-        "StringLike": {"ec2:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": "*"}
+        "StringLike": {"ec2:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": ["*"]}
       }
     },
     {
@@ -529,9 +529,9 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
 	{
       "Sid": "AllowAutoScalingServiceLinkedRole",
       "Effect": "Allow",
-      "Action": "iam:CreateServiceLinkedRole",
+      "Action": ["iam:CreateServiceLinkedRole"],
       "Resource": "arn:aws:iam::*:role/aws-service-role/autoscaling.amazonaws.com/*",
-      "Condition": {"StringLike": {"iam:AWSServiceName": "autoscaling.amazonaws.com"}}
+      "Condition": {"StringLike": {"iam:AWSServiceName": ["autoscaling.amazonaws.com"]}}
     },
     {
       "Sid": "AllowAutoScalingServiceLinkedRolePolicies",
@@ -545,9 +545,9 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
 	{
       "Sid": "AllowLambdaServiceLinkedRole",
       "Effect": "Allow",
-      "Action": "iam:CreateServiceLinkedRole",
+      "Action": ["iam:CreateServiceLinkedRole"],
       "Resource": "arn:aws:iam::*:role/aws-service-role/lambda.amazonaws.com/*",
-      "Condition": {"StringLike": {"iam:AWSServiceName": "lambda.amazonaws.com"}}
+      "Condition": {"StringLike": {"iam:AWSServiceName": ["lambda.amazonaws.com"]}}
     },
     {
       "Sid": "AllowLambdaServiceLinkedRolePolicies",
@@ -745,7 +745,7 @@ data "aws_lambda_function" "instance_orchestrator_lambda_function" {
 
 resource "aws_lambda_permission" "xosphere_instance_orchestrator_lambda_permission" {
   action = "lambda:InvokeFunction"
-  function_name = "xosphere-instance-orchestrator-lambda"
+  function_name = data.aws_lambda_function.instance_orchestrator_lambda_function.arn
   principal = "events.amazonaws.com"
   source_arn = aws_cloudwatch_event_rule.xosphere_instance_orchestrator_cloudwatch_event_rule.arn
   statement_id = "AllowExecutionFromCloudWatch"
@@ -765,13 +765,13 @@ resource "aws_iam_role" "xosphere_instance_orchestrator_role" {
   ]
 }
 EOF
-  name = "xosphere-instance-orchestrator-role"
+  name = "xosphere-instance-orchestrator-lambda-role"
   path = "/"
   tags = var.tags
 }
 
 resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
-  name = "xosphere-instance-orchestrator-policy"
+  name = "xosphere-instance-orchestrator-lambda-policy"
   role = aws_iam_role.xosphere_instance_orchestrator_role.id
   policy = <<EOF
 {
@@ -846,7 +846,7 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
       ],
       "Resource": "*",
       "Condition": {
-        "StringLike": {"cloudwatch:namespace": "xosphere.io/instance-orchestrator/*"}
+        "StringLike": {"cloudwatch:namespace": ["xosphere.io/instance-orchestrator/*"]}
       }
     },
     {
@@ -878,13 +878,13 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
       "Effect": "Allow",
       "Action": [
         "ec2:DeleteTags",
-        "ec2:StartInstances",
         "ec2:StopInstances",
+        "ec2:StartInstances",
         "ec2:TerminateInstances"
 	  ],
       "Resource": "*",
       "Condition": {
-        "StringLike": {"ec2:ResourceTag/xosphere.io/instance-orchestrator/enabled": "*"}
+        "StringLike": {"ec2:ResourceTag/xosphere.io/instance-orchestrator/enabled": ["*"]}
       }
     },
     {
@@ -897,7 +897,7 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
 	  ],
       "Resource": "*",
       "Condition": {
-        "StringLike": {"ec2:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": "*"}
+        "StringLike": {"ec2:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": ["*"]}
       }
     },
     {
@@ -933,7 +933,7 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
       "Effect": "Allow",
       "Action": "iam:CreateServiceLinkedRole",
       "Resource": "arn:aws:iam::*:role/aws-service-role/spot.amazonaws.com/*",
-      "Condition": {"StringLike": {"iam:AWSServiceName": "spot.amazonaws.com"}}
+      "Condition": {"StringLike": {"iam:AWSServiceName": ["spot.amazonaws.com"]}}
     },
     {
       "Sid": "AllowEC2SpotServiceLinkedRolePolicies",
@@ -949,7 +949,7 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
       "Effect": "Allow",
       "Action": "iam:CreateServiceLinkedRole",
       "Resource": "arn:aws:iam::*:role/aws-service-role/elasticloadbalancing.amazonaws.com/*",
-      "Condition": {"StringLike": {"iam:AWSServiceName": "elasticloadbalancing.amazonaws.com"}}
+      "Condition": {"StringLike": {"iam:AWSServiceName": ["elasticloadbalancing.amazonaws.com"]}}
     },
     {
       "Sid": "AllowElasticLoadBalancingServiceLinkedRolePolicies",
@@ -965,7 +965,7 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
       "Effect": "Allow",
       "Action": "iam:CreateServiceLinkedRole",
       "Resource": "arn:aws:iam::*:role/aws-service-role/autoscaling.amazonaws.com/*",
-      "Condition": {"StringLike": {"iam:AWSServiceName": "autoscaling.amazonaws.com"}}
+      "Condition": {"StringLike": {"iam:AWSServiceName": ["autoscaling.amazonaws.com"]}}
     },
     {
       "Sid": "AllowAutoScalingServiceLinkedRolePolicies",
@@ -981,7 +981,7 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
       "Effect": "Allow",
       "Action": "iam:CreateServiceLinkedRole",
       "Resource": "arn:aws:iam::*:role/aws-service-role/lambda.amazonaws.com/*",
-      "Condition": {"StringLike": {"iam:AWSServiceName": "lambda.amazonaws.com"}}
+      "Condition": {"StringLike": {"iam:AWSServiceName": ["lambda.amazonaws.com"]}}
     },
     {
       "Sid": "AllowLambdaServiceLinkedRolePolicies",
@@ -1009,7 +1009,7 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
       }
     },
     {
-      "Sid": "AllowPassRoleToEmc2Instances",
+      "Sid": "AllowPassRoleToEc2Instances",
       "Effect": "Allow",
       "Action": [
 		"iam:PassRole"
@@ -1213,7 +1213,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
       ],
       "Resource": "*",
       "Condition": {
-        "StringLike": {"cloudwatch:namespace": "xosphere.io/instance-orchestrator/*"}
+        "StringLike": {"cloudwatch:namespace": ["xosphere.io/instance-orchestrator/*"]}
       }
     },
     {
@@ -1236,7 +1236,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
 	  ],
       "Resource": "*",
       "Condition": {
-        "StringLike": {"ec2:ResourceTag/xosphere.io/instance-orchestrator/enabled": "*"}
+        "StringLike": {"ec2:ResourceTag/xosphere.io/instance-orchestrator/enabled": ["*"]}
       }
     },
     {
@@ -1250,7 +1250,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
 	  ],
       "Resource": "*",
       "Condition": {
-        "StringLike": {"ec2:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": "*"}
+        "StringLike": {"ec2:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": ["*"]}
       }
     },
 	{
@@ -1277,7 +1277,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
       "Effect": "Allow",
       "Action": "iam:CreateServiceLinkedRole",
       "Resource": "arn:aws:iam::*:role/aws-service-role/spot.amazonaws.com/*",
-      "Condition": {"StringLike": {"iam:AWSServiceName": "spot.amazonaws.com"}}
+      "Condition": {"StringLike": {"iam:AWSServiceName": ["spot.amazonaws.com"]}}
     },
     {
       "Sid": "AllowEC2SpotServiceLinkedRolePolicies",
@@ -1293,7 +1293,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
       "Effect": "Allow",
       "Action": "iam:CreateServiceLinkedRole",
       "Resource": "arn:aws:iam::*:role/aws-service-role/elasticloadbalancing.amazonaws.com/*",
-      "Condition": {"StringLike": {"iam:AWSServiceName": "elasticloadbalancing.amazonaws.com"}}
+      "Condition": {"StringLike": {"iam:AWSServiceName": ["elasticloadbalancing.amazonaws.com"]}}
     },
     {
       "Sid": "AllowElasticLoadBalancingServiceLinkedRolePolicies",
@@ -1484,7 +1484,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_scheduler_lambda_policy" {
       ],
       "Resource": "*",
       "Condition": {
-        "StringLike": {"cloudwatch:namespace": "xosphere.io/instance-orchestrator/*"}
+        "StringLike": {"cloudwatch:namespace": ["xosphere.io/instance-orchestrator/*"]}
       }
     },
     {
@@ -1497,7 +1497,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_scheduler_lambda_policy" {
 	  ],
       "Resource": "*",
       "Condition": {
-        "StringLike": {"ec2:ResourceTag/xosphere.io/instance-orchestrator/schedule-name": "*"}
+        "StringLike": {"ec2:ResourceTag/xosphere.io/instance-orchestrator/schedule-name": ["*"]}
       }
     },
     {
@@ -1516,7 +1516,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_scheduler_lambda_policy" {
       "Effect": "Allow",
       "Action": "iam:CreateServiceLinkedRole",
       "Resource": "arn:aws:iam::*:role/aws-service-role/elasticloadbalancing.amazonaws.com/*",
-      "Condition": {"StringLike": {"iam:AWSServiceName": "elasticloadbalancing.amazonaws.com"}}
+      "Condition": {"StringLike": {"iam:AWSServiceName": ["elasticloadbalancing.amazonaws.com"]}}
     },
     {
       "Sid": "AllowElasticLoadBalancingServiceLinkedRolePolicies",
@@ -1832,7 +1832,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_budget_driver_lambda_polic
       ],
       "Resource": "*",
       "Condition": {
-        "StringLike": {"autoscaling:ResourceTag/xosphere.io/instance-orchestrator/budget-name": "*"}
+        "StringLike": {"autoscaling:ResourceTag/xosphere.io/instance-orchestrator/budget-name": ["*"]}
       }
     },
     {
@@ -1855,7 +1855,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_budget_driver_lambda_polic
 	  ],
       "Resource": "*",
       "Condition": {
-        "StringLike": {"ec2:ResourceTag/xosphere.io/instance-orchestrator/budget-name": "*"}
+        "StringLike": {"ec2:ResourceTag/xosphere.io/instance-orchestrator/budget-name": ["*"]}
       }
     },
     {
@@ -1874,7 +1874,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_budget_driver_lambda_polic
       "Effect": "Allow",
       "Action": "iam:CreateServiceLinkedRole",
       "Resource": "arn:aws:iam::*:role/aws-service-role/spot.amazonaws.com/*",
-      "Condition": {"StringLike": {"iam:AWSServiceName": "spot.amazonaws.com"}}
+      "Condition": {"StringLike": {"iam:AWSServiceName": ["spot.amazonaws.com"]}}
     },
     {
       "Sid": "AllowEC2SpotServiceLinkedRolePolicies",
@@ -1890,7 +1890,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_budget_driver_lambda_polic
       "Effect": "Allow",
       "Action": "iam:CreateServiceLinkedRole",
       "Resource": "arn:aws:iam::*:role/aws-service-role/elasticloadbalancing.amazonaws.com/*",
-      "Condition": {"StringLike": {"iam:AWSServiceName": "elasticloadbalancing.amazonaws.com"}}
+      "Condition": {"StringLike": {"iam:AWSServiceName": ["elasticloadbalancing.amazonaws.com"]}}
     },
     {
       "Sid": "AllowElasticLoadBalancingServiceLinkedRolePolicies",
@@ -1906,7 +1906,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_budget_driver_lambda_polic
       "Effect": "Allow",
       "Action": "iam:CreateServiceLinkedRole",
       "Resource": "arn:aws:iam::*:role/aws-service-role/autoscaling.amazonaws.com/*",
-      "Condition": {"StringLike": {"iam:AWSServiceName": "autoscaling.amazonaws.com"}}
+      "Condition": {"StringLike": {"iam:AWSServiceName": ["autoscaling.amazonaws.com"]}}
     },
     {
       "Sid": "AllowAutoScalingServiceLinkedRolePolicies",
@@ -1982,7 +1982,7 @@ resource "aws_cloudwatch_log_group" "instance_orchestrator_budget_driver_cloudwa
 }
 
 resource "aws_cloudwatch_event_rule" "instance_orchestrator_budget_driver_cloudwatch_event_rule" {
-  name = "xosphere-instance-orchestrator-budget-schedule"
+  name = "xosphere-budget-driver-schedule-event-rule"
   description = "Schedule for launching Instance Orchestrator Budget Driver"
   schedule_expression = "cron(${var.budget_lambda_cron_schedule})"
   is_enabled = true
@@ -1992,7 +1992,7 @@ resource "aws_cloudwatch_event_rule" "instance_orchestrator_budget_driver_cloudw
 resource "aws_cloudwatch_event_target" "instance_orchestrator_budget_driver_cloudwatch_event_target" {
   arn = aws_lambda_function.instance_orchestrator_budget_driver_lambda.arn
   rule = aws_cloudwatch_event_rule.instance_orchestrator_budget_driver_cloudwatch_event_rule.name
-  target_id = "xosphere-io-budget-driver"
+  target_id = "xosphere-instance-orchestrator-budget-schedule"
 }
 
 // budget processor
@@ -2028,7 +2028,7 @@ resource "aws_lambda_event_source_mapping" "instance_orchestrator_budget_lambda_
 resource "aws_lambda_permission" "instance_orchestrator_budget_lambda_permission" {
   action = "lambda:InvokeFunction"
   function_name = aws_lambda_function.instance_orchestrator_budget_lambda.arn
-  principal = "sqs.amazonaws.com"
+  principal = "events.amazonaws.com"
   source_arn = aws_sqs_queue.instance_orchestrator_budget_queue.arn
   statement_id = "AllowSQSInvoke"
 }
@@ -2190,7 +2190,7 @@ resource "aws_lambda_function" "instance_orchestrator_snapshot_creator_lambda" {
 
 resource "aws_lambda_permission" "instance_orchestrator_snapshot_creator_lambda_permission" {
   action = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.instance_orchestrator_snapshot_creator_lambda.function_name
+  function_name = aws_lambda_function.instance_orchestrator_snapshot_creator_lambda.arn
   principal = "events.amazonaws.com"
   source_arn = aws_cloudwatch_event_rule.instance_orchestrator_snapshot_creator_cloudwatch_event_rule.arn
   statement_id = "AllowExecutionFromCloudWatch"
@@ -2290,7 +2290,7 @@ resource "aws_cloudwatch_log_group" "instance_orchestrator_snapshot_creator_clou
 }
 
 resource "aws_cloudwatch_event_rule" "instance_orchestrator_snapshot_creator_cloudwatch_event_rule" {
-  name = "xosphere-io-snapshot-creator-schedule"
+  name = "xosphere-snapshot-creator-schedule-event-rule"
   description = "Schedule for launching Xosphere Instance Orchestrator Snapshot Creator"
   schedule_expression = "cron(${var.snapshot_creator_cron_schedule})"
   is_enabled = true
@@ -2300,7 +2300,7 @@ resource "aws_cloudwatch_event_rule" "instance_orchestrator_snapshot_creator_clo
 resource "aws_cloudwatch_event_target" "instance_orchestrator_snapshot_creator_cloudwatch_event_target" {
   arn = aws_lambda_function.instance_orchestrator_snapshot_creator_lambda.arn
   rule = aws_cloudwatch_event_rule.instance_orchestrator_snapshot_creator_cloudwatch_event_rule.name
-  target_id = "xosphere-io-snapshot-creator"
+  target_id = "xosphere-io-snapshot-creator-schedule"
 }
 
 resource "aws_lambda_event_source_mapping" "instance_orchestrator_snapshot_creator_lambda_sqs_trigger" {
@@ -2335,7 +2335,7 @@ resource "aws_lambda_function" "instance_orchestrator_group_inspector_lambda" {
 
 resource "aws_lambda_permission" "instance_orchestrator_group_inspector_schedule_cloudwatch_event_lambda_permission" {
   action = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.instance_orchestrator_group_inspector_lambda.function_name
+  function_name = aws_lambda_function.instance_orchestrator_group_inspector_lambda.arn
   principal = "events.amazonaws.com"
   source_arn = aws_cloudwatch_event_rule.instance_orchestrator_group_inspector_schedule_cloudwatch_event_rule.arn
   statement_id = "AllowGroupInspectorExecutionFromCloudWatchSchedule"
@@ -2418,7 +2418,7 @@ resource "aws_cloudwatch_log_group" "instance_orchestrator_group_inspector_cloud
 }
 
 resource "aws_cloudwatch_event_rule" "instance_orchestrator_group_inspector_schedule_cloudwatch_event_rule" {
-  name = "xosphere-io-group-inspector-schedule"
+  name = "xosphere-group-inspector-schedule-event-rule"
   description = "Schedule for launching Xosphere Instance Orchestrator Group Inspector"
   schedule_expression = "cron(${var.group_inspector_cron_schedule})"
   is_enabled = true
@@ -2428,7 +2428,7 @@ resource "aws_cloudwatch_event_rule" "instance_orchestrator_group_inspector_sche
 resource "aws_cloudwatch_event_target" "xosphere_instance_orchestrator_group_inspector_schedule_cloudwatch_event_target" {
   arn = aws_lambda_function.instance_orchestrator_group_inspector_lambda.arn
   rule = aws_cloudwatch_event_rule.instance_orchestrator_group_inspector_schedule_cloudwatch_event_rule.name
-  target_id = "xosphere-instance-orchestrator-group-inspector-schedule"
+  target_id = "xosphere-io-group-inspector-schedule"
 }
 
 //AMI cleaner
@@ -2454,7 +2454,7 @@ resource "aws_lambda_function" "instance_orchestrator_ami_cleaner_lambda" {
 
 resource "aws_lambda_permission" "instance_orchestrator_ami_cleaner_lambda_permission" {
   action = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.instance_orchestrator_ami_cleaner_lambda.function_name
+  function_name = aws_lambda_function.instance_orchestrator_ami_cleaner_lambda.arn
   principal = "events.amazonaws.com"
   source_arn = aws_cloudwatch_event_rule.instance_orchestrator_ami_cleaner_cloudwatch_event_rule.arn
   statement_id = "AllowExecutionFromCloudWatch"
@@ -2522,7 +2522,7 @@ resource "aws_cloudwatch_log_group" "instance_orchestrator_ami_cleaner_cloudwatc
 }
 
 resource "aws_cloudwatch_event_rule" "instance_orchestrator_ami_cleaner_cloudwatch_event_rule" {
-  name = "xosphere-io-ami-cleaner-schedule"
+  name = "xosphere-ami-cleaner-schedule-event-rule"
   description = "Schedule for launching Xosphere Instance Orchestrator AMI Cleaner"
   schedule_expression = "cron(${var.ami_cleaner_cron_schedule})"
   is_enabled = true
@@ -2532,7 +2532,7 @@ resource "aws_cloudwatch_event_rule" "instance_orchestrator_ami_cleaner_cloudwat
 resource "aws_cloudwatch_event_target" "instance_orchestrator_ami_cleaner_cloudwatch_event_target" {
   arn = aws_lambda_function.instance_orchestrator_ami_cleaner_lambda.arn
   rule = aws_cloudwatch_event_rule.instance_orchestrator_ami_cleaner_cloudwatch_event_rule.name
-  target_id = "xosphere-io-ami-cleaner"
+  target_id = "xosphere-io-ami-cleaner-schedule"
 }
 
 //DLQ handler
@@ -2878,7 +2878,7 @@ resource "aws_iam_role" "xosphere_support_access_role" {
   "Statement": [
     {
       "Action": "sts:AssumeRole",
-      "Principal": { "AWS": "770759415832" },
+      "Principal": { "AWS": "arn:aws:iam::770759415832:root" },
       "Condition": {"StringEquals": {"sts:ExternalId": "${var.customer_id}"}},
       "Effect": "Allow",
       "Sid": "AllowXosphereSupportTrustPolicy"
@@ -2886,7 +2886,7 @@ resource "aws_iam_role" "xosphere_support_access_role" {
   ]
 }
 EOF
-  name = "xosphere-instance-orchestrator-support-access-role"
+  name = "xosphere-instance-orchestrator-auto-support-role"
   path = "/"
   tags = var.tags
 }
@@ -2894,7 +2894,7 @@ EOF
 resource "aws_iam_role_policy" "xosphere_support_access_policy" {
   count = var.enable_auto_support > 0 ? 1 : 0
 
-  name = "xosphere-support-access-policy"
+  name = "xosphere-auto-support-policy"
   role = aws_iam_role.xosphere_support_access_role[0].id
   policy = <<EOF
 {
