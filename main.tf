@@ -318,7 +318,7 @@ EOF
 
 resource "aws_cloudwatch_log_group" "xosphere_event_router_cloudwatch_log_group" {
   name = "/aws/lambda/xosphere-event-router"
-  retention_in_days = 30
+  retention_in_days = var.event_router_lambda_log_retention
   tags = var.tags
 }
 
