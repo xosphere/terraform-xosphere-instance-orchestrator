@@ -1148,6 +1148,17 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
           ]
         }
       }
+    },
+    {
+      "Sid": "AllowPassRoleToCodeDeploy",
+      "Effect": "Allow",
+      "Action": [
+		"iam:PassRole"
+	  ],
+      "Resource": "${var.codedeploy_passrole_arn_resource_pattern}",
+      "Condition": {
+        "StringEquals": {"iam:PassedToService": "codedeploy.amazonaws.com"}
+      }
     }
   ]
 }
