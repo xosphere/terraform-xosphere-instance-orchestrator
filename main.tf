@@ -2504,7 +2504,7 @@ resource "aws_lambda_event_source_mapping" "instance_orchestrator_budget_lambda_
 resource "aws_lambda_permission" "instance_orchestrator_budget_lambda_permission" {
   action = "lambda:InvokeFunction"
   function_name = aws_lambda_function.instance_orchestrator_budget_lambda.arn
-  principal = "events.amazonaws.com"
+  principal = "sqs.amazonaws.com"
   source_arn = aws_sqs_queue.instance_orchestrator_budget_queue.arn
   statement_id = var.budget_lambda_permission_name_override == null ? "AllowSQSInvoke" : var.budget_lambda_permission_name_override
 }
