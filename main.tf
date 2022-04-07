@@ -5,6 +5,7 @@ locals {
   kms_key_pattern = format("arn:aws:kms:%s:%s:key/*", local.xo_account_region, var.xo_account_id)
   s3_bucket = "xosphere-io-releases-${data.aws_region.current.name}"
   xo_account_region = "us-west-2"
+  has_global_terraform_settings = var.terraform_version != "" || var.terraform_aws_provider_version != "" || var.terraform_backend_aws_region != "" || var.terraform_backend_s3_bucket != "" || var.terraform_backend_s3_key != ""
 }
 
 data "aws_caller_identity" "current" {}
@@ -1376,6 +1377,14 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
             "kms:Decrypt"
         ],
         "Resource": "${local.kms_key_pattern}"
+    },
+    {
+        "Sid": "AllowLambdaOperationsOnXosphereFunctions",
+        "Effect": "Allow",
+        "Action": [
+            "lambda:InvokeFunction"
+        ],
+        "Resource": "arn:aws:lambda:*:*:function:xosphere-*"
     }
   ]
 }
