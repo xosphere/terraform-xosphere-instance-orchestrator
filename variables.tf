@@ -285,3 +285,42 @@ variable "enable_auto_support" {
   description = "Enable Auto Support"
   default = 1
 }
+
+variable "terraform_version" {
+  description = "The version of Terraform"
+  default = ""
+}
+
+variable "terraform_aws_provider_version" {
+  description = "The version of Terraform AWS Provider"
+  default = ""
+}
+
+variable "terraform_backend_aws_region" {
+  description = "The AWS region for Terraform backend"
+  default = ""
+}
+
+variable "terraform_backend_s3_bucket" {
+  description = "The S3 bucket for Terraform backend"
+  default = ""
+}
+
+variable "terraform_backend_s3_key" {
+  description = "The S3 key for Terraform backend"
+}
+
+variable "terraformer_memory_size" {
+  description = "Memory size allocated to Lambda"
+  default = 128
+}
+
+variable "terraformer_lambda_timeout" {
+  description = "Lambda function execution timeout"
+  default = 300
+}
+
+variable "terraformer_lambda_log_retention" {
+  description = "Lambda function log file retention in days"
+  default = 30
+}
