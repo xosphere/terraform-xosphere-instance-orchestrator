@@ -8,17 +8,24 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 resource "aws_s3_bucket" "instance_state_s3_logging_bucket" {
-  acl = "log-delivery-write"
-  server_side_encryption_configuration {
-    rule {
-      apply_server_side_encryption_by_default {
-        sse_algorithm = "AES256"
-      }
-    }
-  }
   force_destroy = true
   bucket_prefix = "xosphere-io-logging"
   tags = var.tags
+}
+
+resource "aws_s3_bucket_acl" "instance_state_s3_logging_bucket_acl" {
+  bucket = aws_s3_bucket.instance_state_s3_logging_bucket.id
+  acl = "log-delivery-write"
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "instance_state_s3_logging_bucket_encryption" {
+  bucket = aws_s3_bucket.instance_state_s3_logging_bucket.bucket
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
 }
 
 resource "aws_s3_bucket_policy" "instance_state_s3_logging_bucket_policy" {
@@ -46,19 +53,29 @@ EOF
 resource "aws_s3_bucket" "instance_state_s3_bucket" {
   force_destroy = true
   bucket_prefix = "xosphere-instance-orchestrator"
+  tags = var.tags
+}
+
+resource "aws_s3_bucket_acl" "instance_state_s3_bucket_acl" {
+  bucket = aws_s3_bucket.instance_state_s3_bucket.id
   acl = "private"
-  server_side_encryption_configuration {
-    rule {
-      apply_server_side_encryption_by_default {
-        sse_algorithm = "AES256"
-      }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "instance_state_s3_bucket_encryption" {
+  bucket = aws_s3_bucket.instance_state_s3_bucket.bucket
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
     }
   }
-  logging {
-    target_bucket = aws_s3_bucket.instance_state_s3_logging_bucket.id
-    target_prefix = "xosphere-instance-orchestrator-logs"
-  }
-  tags = var.tags
+}
+
+resource "aws_s3_bucket_logging" "instance_state_s3_bucket_logging" {
+  bucket = aws_s3_bucket.instance_state_s3_bucket.id
+
+  target_bucket = aws_s3_bucket.instance_state_s3_logging_bucket.id
+  target_prefix = "xosphere-instance-orchestrator-logs"
 }
 
 resource "aws_s3_bucket_policy" "instance_state_s3_bucket_policy" {
