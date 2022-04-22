@@ -285,3 +285,11 @@ variable "enable_auto_support" {
   description = "Enable Auto Support"
   default = 1
 }
+
+variable "xo_account_id" {
+  default = "143723790106"
+}
+
+variable "endpoint_url" {
+  default = "https://portal-api.xosphere.io/v1"
+}

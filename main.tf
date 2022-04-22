@@ -1,9 +1,12 @@
 locals {
   version = "0.21.5"
-  api_token_arn = "arn:aws:secretsmanager:us-west-2:143723790106:secret:customer/${var.customer_id}"
-  endpoint_url = "https://portal-api.xosphere.io/v1"
+  api_token_arn = format("arn:aws:secretsmanager:%s:%s:secret:customer/%s", local.xo_account_region, var.xo_account_id, var.customer_id)
   regions = join(",", var.regions_enabled)
+  kms_key_pattern = format("arn:aws:kms:%s:%s:key/*", local.xo_account_region, var.xo_account_id)
+  s3_bucket = "xosphere-io-releases-${data.aws_region.current.name}"
+  xo_account_region = "us-west-2"
 }
+
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
@@ -175,7 +178,7 @@ resource "aws_sqs_queue" "instance_orchestrator_budget_queue" {
 
 //event router
 resource "aws_lambda_function" "xosphere_event_router_lambda" {
-  s3_bucket = "xosphere-io-releases-${data.aws_region.current.name}"
+  s3_bucket = local.s3_bucket
   s3_key = "event-router-lambda-${local.version}.zip"
   description = "Xosphere Event Router"
   environment {
@@ -372,7 +375,8 @@ EOF
 //terminator
 resource "aws_lambda_function" "xosphere_terminator_lambda_k8s_enabled" {
   count = length(var.k8s_vpc_security_group_ids) > 0  && length(var.k8s_vpc_subnet_ids) > 0 ? 1 : 0
-  s3_bucket = "xosphere-io-releases-${data.aws_region.current.name}"
+
+  s3_bucket = local.s3_bucket
   s3_key = "terminator-lambda-${local.version}.zip"
   description = "Xosphere Terminator"
   environment {
@@ -380,7 +384,7 @@ resource "aws_lambda_function" "xosphere_terminator_lambda_k8s_enabled" {
       INSTANCE_STATE_S3_BUCKET = aws_s3_bucket.instance_state_s3_bucket.id
       SQS_QUEUE = aws_sqs_queue.instance_orchestrator_launcher_queue.id
       API_TOKEN_ARN = local.api_token_arn
-      ENDPOINT_URL = local.endpoint_url
+      ENDPOINT_URL = var.endpoint_url
       IO_BRIDGE_NAME = "xosphere-io-bridge"
       K8S_VPC_ENABLED = "true"
       ENABLE_ECS = var.enable_ecs
@@ -398,7 +402,8 @@ resource "aws_lambda_function" "xosphere_terminator_lambda_k8s_enabled" {
 
 resource "aws_lambda_function" "xosphere_terminator_lambda" {
   count = length(var.k8s_vpc_security_group_ids) == 0  || length(var.k8s_vpc_subnet_ids) == 0 ? 1 : 0
-  s3_bucket = "xosphere-io-releases-${data.aws_region.current.name}"
+
+  s3_bucket = local.s3_bucket
   s3_key = "terminator-lambda-${local.version}.zip"
   description = "Xosphere Terminator"
   environment {
@@ -406,7 +411,7 @@ resource "aws_lambda_function" "xosphere_terminator_lambda" {
       INSTANCE_STATE_S3_BUCKET = aws_s3_bucket.instance_state_s3_bucket.id
       SQS_QUEUE = aws_sqs_queue.instance_orchestrator_launcher_queue.id
       API_TOKEN_ARN = local.api_token_arn
-      ENDPOINT_URL = local.endpoint_url
+      ENDPOINT_URL = var.endpoint_url
       IO_BRIDGE_NAME = "xosphere-io-bridge"
       K8S_VPC_ENABLED = "true"
       ENABLE_ECS = var.enable_ecs
@@ -629,7 +634,7 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
         "Action": [
             "kms:Decrypt"
         ],
-        "Resource": "arn:aws:kms:us-west-2:143723790106:key/*"
+        "Resource": "${local.kms_key_pattern}"
     }
   ]
 }
@@ -654,14 +659,15 @@ data "aws_lambda_function" "terminator_lambda_function" {
 //instance-orchestrator
 resource "aws_lambda_function" "xosphere_instance_orchestrator_lambda_k8s_enabled" {
   count = length(var.k8s_vpc_security_group_ids) > 0  && length(var.k8s_vpc_subnet_ids) > 0 ? 1 : 0
-  s3_bucket = "xosphere-io-releases-${data.aws_region.current.name}"
+
+  s3_bucket = local.s3_bucket
   s3_key = "instance-orchestrator-lambda-${local.version}.zip"
   description = "Xosphere Instance Orchestrator"
   environment {
     variables = {
       REGIONS = local.regions
       API_TOKEN_ARN = local.api_token_arn
-      ENDPOINT_URL = local.endpoint_url
+      ENDPOINT_URL = var.endpoint_url
       INSTANCE_STATE_S3_BUCKET = aws_s3_bucket.instance_state_s3_bucket.id
       SQS_QUEUE = aws_sqs_queue.instance_orchestrator_launcher_queue.id
       SQS_SCHEDULER_QUEUE = aws_sqs_queue.instance_orchestrator_schedule_queue.id
@@ -691,14 +697,15 @@ resource "aws_lambda_function_event_invoke_config" "xosphere_instance_orchestrat
 
 resource "aws_lambda_function" "xosphere_instance_orchestrator_lambda" {
   count = length(var.k8s_vpc_security_group_ids) == 0  || length(var.k8s_vpc_subnet_ids) == 0 ? 1 : 0
-  s3_bucket = "xosphere-io-releases-${data.aws_region.current.name}"
+
+  s3_bucket = local.s3_bucket
   s3_key = "instance-orchestrator-lambda-${local.version}.zip"
   description = "Xosphere Instance Orchestrator"
   environment {
     variables = {
       REGIONS = local.regions
       API_TOKEN_ARN = local.api_token_arn
-      ENDPOINT_URL = local.endpoint_url
+      ENDPOINT_URL = var.endpoint_url
       INSTANCE_STATE_S3_BUCKET = aws_s3_bucket.instance_state_s3_bucket.id
       SQS_QUEUE = aws_sqs_queue.instance_orchestrator_launcher_queue.id
       SQS_SCHEDULER_QUEUE = aws_sqs_queue.instance_orchestrator_schedule_queue.id
@@ -1078,7 +1085,7 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
         "Action": [
             "kms:Decrypt"
         ],
-        "Resource": "arn:aws:kms:us-west-2:143723790106:key/*"
+        "Resource": "${local.kms_key_pattern}"
     }
   ]
 }
@@ -1110,13 +1117,13 @@ resource "aws_cloudwatch_event_target" "xosphere_instance_orchestrator_cloudwatc
 
 //launcher
 resource "aws_lambda_function" "xosphere_instance_orchestrator_launcher_lambda" {
-  s3_bucket = "xosphere-io-releases-${data.aws_region.current.name}"
+  s3_bucket = local.s3_bucket
   s3_key = "launcher-lambda-${local.version}.zip"
   description = "Xosphere Instance Orchestrator Launcher"
   environment {
     variables = {
       API_TOKEN_ARN = local.api_token_arn
-      ENDPOINT_URL = local.endpoint_url
+      ENDPOINT_URL = var.endpoint_url
       INSTANCE_STATE_S3_BUCKET = aws_s3_bucket.instance_state_s3_bucket.id
       SQS_QUEUE = aws_sqs_queue.instance_orchestrator_launcher_queue.id
     }
@@ -1368,7 +1375,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
         "Action": [
             "kms:Decrypt"
         ],
-        "Resource": "arn:aws:kms:us-west-2:143723790106:key/*"
+        "Resource": "${local.kms_key_pattern}"
     }
   ]
 }
@@ -1384,13 +1391,13 @@ resource "aws_cloudwatch_log_group" "instance_orchestrator_launcher_cloudwatch_l
 //scheduler
 
 resource "aws_lambda_function" "instance_orchestrator_scheduler_lambda" {
-  s3_bucket = "xosphere-io-releases-${data.aws_region.current.name}"
+  s3_bucket = local.s3_bucket
   s3_key = "scheduler-lambda-${local.version}.zip"
   description = "Xosphere Instance Orchestrator Scheduler"
   environment {
     variables = {
       API_TOKEN_ARN = local.api_token_arn
-      ENDPOINT_URL = local.endpoint_url
+      ENDPOINT_URL = var.endpoint_url
       INSTANCE_STATE_S3_BUCKET = aws_s3_bucket.instance_state_s3_bucket.id
       SQS_QUEUE = aws_sqs_queue.instance_orchestrator_schedule_queue.id
     }
@@ -1564,7 +1571,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_scheduler_lambda_policy" {
         "Action": [
             "kms:Decrypt"
         ],
-        "Resource": "arn:aws:kms:us-west-2:143723790106:key/*"
+        "Resource": "${local.kms_key_pattern}"
     }
   ]
 }
@@ -1578,13 +1585,13 @@ resource "aws_cloudwatch_log_group" "instance_orchestrator_scheduler_cloudwatch_
 }
 
 resource "aws_lambda_function" "instance_orchestrator_scheduler_cloudwatch_event_lambda" {
-  s3_bucket = "xosphere-io-releases-${data.aws_region.current.name}"
+  s3_bucket = local.s3_bucket
   s3_key = "scheduler-cwe-lambda-${local.version}.zip"
   description = "Xosphere Instance Orchestrator Scheduler On Cloudwatch Event"
   environment {
     variables = {
       API_TOKEN_ARN = local.api_token_arn
-      ENDPOINT_URL = local.endpoint_url
+      ENDPOINT_URL = var.endpoint_url
       INSTANCE_STATE_S3_BUCKET = aws_s3_bucket.instance_state_s3_bucket.id
       SQS_QUEUE = aws_sqs_queue.instance_orchestrator_schedule_queue.id
     }
@@ -1608,7 +1615,7 @@ resource "aws_cloudwatch_log_group" "instance_orchestrator_scheduler_cloudwatch_
 // Xogroup enabler
 
 resource "aws_lambda_function" "instance_orchestrator_xogroup_enabler_lambda" {
-  s3_bucket = "xosphere-io-releases-${data.aws_region.current.name}"
+  s3_bucket = local.s3_bucket
   s3_key = "xogroup-enabler-lambda-${local.version}.zip"
   description = "Xosphere Instance Orchestrator Xogroup Enabler"
   environment {
@@ -1723,13 +1730,13 @@ resource "aws_cloudwatch_log_group" "instance_orchestrator_xogroup_enabler_cloud
 //budget Driver
 
 resource "aws_lambda_function" "instance_orchestrator_budget_driver_lambda" {
-  s3_bucket = "xosphere-io-releases-${data.aws_region.current.name}"
+  s3_bucket = local.s3_bucket
   s3_key = "budget-driver-lambda-${local.version}.zip"
   description = "Xosphere Instance Orchestrator Budget Driver"
   environment {
     variables = {
       API_TOKEN_ARN = local.api_token_arn
-      ENDPOINT_URL = local.endpoint_url
+      ENDPOINT_URL = var.endpoint_url
       INSTANCE_STATE_S3_BUCKET = aws_s3_bucket.instance_state_s3_bucket.id
       SQS_BUDGET_QUEUE = aws_sqs_queue.instance_orchestrator_budget_queue.id
       SQS_LAUNCHER_QUEUE = aws_sqs_queue.instance_orchestrator_launcher_queue.id
@@ -1950,7 +1957,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_budget_driver_lambda_polic
         "Action": [
             "kms:Decrypt"
         ],
-        "Resource": "arn:aws:kms:us-west-2:143723790106:key/*"
+        "Resource": "${local.kms_key_pattern}"
     }
   ]
 }
@@ -1980,7 +1987,7 @@ resource "aws_cloudwatch_event_target" "instance_orchestrator_budget_driver_clou
 // budget processor
 
 resource "aws_lambda_function" "instance_orchestrator_budget_lambda" {
-  s3_bucket = "xosphere-io-releases-${data.aws_region.current.name}"
+  s3_bucket = local.s3_bucket
   s3_key = "budget-lambda-${local.version}.zip"
   description = "Xosphere Instance Orchestrator Budget"
   environment {
@@ -2151,7 +2158,7 @@ resource "aws_cloudwatch_log_group" "instance_orchestrator_budget_cloudwatch_log
 //snapshot
 
 resource "aws_lambda_function" "instance_orchestrator_snapshot_creator_lambda" {
-  s3_bucket = "xosphere-io-releases-${data.aws_region.current.name}"
+  s3_bucket = local.s3_bucket
   s3_key = "snapshot-creator-lambda-${local.version}.zip"
   description = "Xosphere Instance Orchestrator Snapshot Creator"
   environment {
@@ -2295,14 +2302,14 @@ resource "aws_lambda_event_source_mapping" "instance_orchestrator_snapshot_creat
 // Group Inspector
 
 resource "aws_lambda_function" "instance_orchestrator_group_inspector_lambda" {
-  s3_bucket = "xosphere-io-releases-${data.aws_region.current.name}"
+  s3_bucket = local.s3_bucket
   s3_key = "snapshot-creator-lambda-${local.version}.zip"
   description = "Xosphere Instance Orchestrator Group Inspector"
   environment {
     variables = {
       REGIONS = local.regions
       API_TOKEN_ARN = local.api_token_arn
-      ENDPOINT_URL = local.endpoint_url
+      ENDPOINT_URL = var.endpoint_url
     }
   }
   function_name = "xosphere-instance-orchestrator-group-inspector"
@@ -2386,7 +2393,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_group_inspector_policy" {
         "Action": [
             "kms:Decrypt"
         ],
-        "Resource": "arn:aws:kms:us-west-2:143723790106:key/*"
+        "Resource": "${local.kms_key_pattern}"
     }
   ]
 }
@@ -2416,7 +2423,7 @@ resource "aws_cloudwatch_event_target" "xosphere_instance_orchestrator_group_ins
 //AMI cleaner
 
 resource "aws_lambda_function" "instance_orchestrator_ami_cleaner_lambda" {
-  s3_bucket = "xosphere-io-releases-${data.aws_region.current.name}"
+  s3_bucket = local.s3_bucket
   s3_key = "ami-cleaner-lambda-${local.version}.zip"
   description = "Xosphere Instance Orchestrator AMI Cleaner"
   environment {
@@ -2520,7 +2527,7 @@ resource "aws_cloudwatch_event_target" "instance_orchestrator_ami_cleaner_cloudw
 //DLQ handler
 
 resource "aws_lambda_function" "instance_orchestrator_dlq_handler_lambda" {
-  s3_bucket = "xosphere-io-releases-${data.aws_region.current.name}"
+  s3_bucket = local.s3_bucket
   s3_key = "dlq-handler-lambda-${local.version}.zip"
   description = "Xosphere Instance Orchestrator Dead-Letter Queue Handler"
   environment {
@@ -2528,7 +2535,7 @@ resource "aws_lambda_function" "instance_orchestrator_dlq_handler_lambda" {
       INSTANCE_STATE_S3_BUCKET = aws_s3_bucket.instance_state_s3_bucket.id
       DEAD_LETTER_QUEUE = aws_sqs_queue.instance_orchestrator_launcher_dlq.id
       API_TOKEN_ARN = local.api_token_arn
-      ENDPOINT_URL = local.endpoint_url
+      ENDPOINT_URL = var.endpoint_url
       SQS_QUEUE = aws_sqs_queue.instance_orchestrator_schedule_queue.id
     }
   }
@@ -2639,7 +2646,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_dlq_handler_policy" {
         "Action": [
             "kms:Decrypt"
         ],
-        "Resource": "arn:aws:kms:us-west-2:143723790106:key/*"
+        "Resource": "${local.kms_key_pattern}"
     }
   ]
 }
@@ -2657,7 +2664,7 @@ resource "aws_cloudwatch_log_group" "instance_orchestrator_dlq_handler_cloudwatc
 resource "aws_lambda_function" "xosphere_io_bridge_lambda" {
   count = length(var.k8s_vpc_security_group_ids) > 0  && length(var.k8s_vpc_subnet_ids) > 0 ? 1 : 0
 
-  s3_bucket = "xosphere-io-releases-${data.aws_region.current.name}"
+  s3_bucket = local.s3_bucket
   s3_key = "iobridge-lambda-${local.version}.zip"
   description = "Xosphere IO-Bridge"
   environment {
