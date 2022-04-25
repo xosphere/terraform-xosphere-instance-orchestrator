@@ -376,6 +376,7 @@ EOF
 //terminator
 resource "aws_lambda_function" "xosphere_terminator_lambda_k8s_enabled" {
   count = length(var.k8s_vpc_security_group_ids) > 0  && length(var.k8s_vpc_subnet_ids) > 0 ? 1 : 0
+
   s3_bucket = local.s3_bucket
   s3_key = "terminator-lambda-${local.version}.zip"
   description = "Xosphere Terminator"
@@ -402,6 +403,7 @@ resource "aws_lambda_function" "xosphere_terminator_lambda_k8s_enabled" {
 
 resource "aws_lambda_function" "xosphere_terminator_lambda" {
   count = length(var.k8s_vpc_security_group_ids) == 0  || length(var.k8s_vpc_subnet_ids) == 0 ? 1 : 0
+
   s3_bucket = local.s3_bucket
   s3_key = "terminator-lambda-${local.version}.zip"
   description = "Xosphere Terminator"
@@ -658,6 +660,7 @@ data "aws_lambda_function" "terminator_lambda_function" {
 //instance-orchestrator
 resource "aws_lambda_function" "xosphere_instance_orchestrator_lambda_k8s_enabled" {
   count = length(var.k8s_vpc_security_group_ids) > 0  && length(var.k8s_vpc_subnet_ids) > 0 ? 1 : 0
+
   s3_bucket = local.s3_bucket
   s3_key = "instance-orchestrator-lambda-${local.version}.zip"
   description = "Xosphere Instance Orchestrator"
@@ -695,6 +698,7 @@ resource "aws_lambda_function_event_invoke_config" "xosphere_instance_orchestrat
 
 resource "aws_lambda_function" "xosphere_instance_orchestrator_lambda" {
   count = length(var.k8s_vpc_security_group_ids) == 0  || length(var.k8s_vpc_subnet_ids) == 0 ? 1 : 0
+
   s3_bucket = local.s3_bucket
   s3_key = "instance-orchestrator-lambda-${local.version}.zip"
   description = "Xosphere Instance Orchestrator"
@@ -1124,7 +1128,7 @@ resource "aws_lambda_function" "xosphere_instance_orchestrator_launcher_lambda" 
       INSTANCE_STATE_S3_BUCKET = aws_s3_bucket.instance_state_s3_bucket.id
       SQS_QUEUE = aws_sqs_queue.instance_orchestrator_launcher_queue.id
       HAS_GLOBAL_TERRAFORM_SETTING = local.has_global_terraform_settings ? "true" : "false"
-      TERRAFORMER_LAMBDA_NAME = ""
+      TERRAFORMER_LAMBDA_NAME = aws_lambda_function.instance_orchestrator_terraformer_lambda.arn
     }
   }
   function_name = "xosphere-instance-orchestrator-launcher"
