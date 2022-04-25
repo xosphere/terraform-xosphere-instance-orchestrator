@@ -633,7 +633,7 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
         "Action": [
             "kms:Decrypt"
         ],
-        "Resource": "arn:aws:kms:us-west-2:143723790106:key/*"
+        "Resource": "${local.kms_key_pattern}"
     }
   ]
 }
@@ -1082,7 +1082,7 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
         "Action": [
             "kms:Decrypt"
         ],
-        "Resource": "arn:aws:kms:us-west-2:143723790106:key/*"
+        "Resource": "${local.kms_key_pattern}"
     }
   ]
 }
@@ -1578,7 +1578,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_scheduler_lambda_policy" {
         "Action": [
             "kms:Decrypt"
         ],
-        "Resource": "arn:aws:kms:us-west-2:143723790106:key/*"
+        "Resource": "${local.kms_key_pattern}"
     }
   ]
 }
@@ -1964,7 +1964,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_budget_driver_lambda_polic
         "Action": [
             "kms:Decrypt"
         ],
-        "Resource": "arn:aws:kms:us-west-2:143723790106:key/*"
+        "Resource": "${local.kms_key_pattern}"
     }
   ]
 }
@@ -2400,7 +2400,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_group_inspector_policy" {
         "Action": [
             "kms:Decrypt"
         ],
-        "Resource": "arn:aws:kms:us-west-2:143723790106:key/*"
+        "Resource": "${local.kms_key_pattern}"
     }
   ]
 }
@@ -2653,7 +2653,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_dlq_handler_policy" {
         "Action": [
             "kms:Decrypt"
         ],
-        "Resource": "arn:aws:kms:us-west-2:143723790106:key/*"
+        "Resource": "${local.kms_key_pattern}"
     }
   ]
 }
