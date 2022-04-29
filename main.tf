@@ -5,6 +5,7 @@ locals {
   kms_key_pattern = format("arn:aws:kms:%s:%s:key/*", local.xo_account_region, var.xo_account_id)
   s3_bucket = "xosphere-io-releases-${data.aws_region.current.name}"
   xo_account_region = "us-west-2"
+  has_global_terraform_settings = var.terraform_version != "" || var.terraform_aws_provider_version != "" || var.terraform_backend_aws_region != "" || var.terraform_backend_s3_bucket != "" || var.terraform_backend_s3_key != ""
 }
 
 data "aws_caller_identity" "current" {}
@@ -1126,6 +1127,8 @@ resource "aws_lambda_function" "xosphere_instance_orchestrator_launcher_lambda" 
       ENDPOINT_URL = var.endpoint_url
       INSTANCE_STATE_S3_BUCKET = aws_s3_bucket.instance_state_s3_bucket.id
       SQS_QUEUE = aws_sqs_queue.instance_orchestrator_launcher_queue.id
+      HAS_GLOBAL_TERRAFORM_SETTING = local.has_global_terraform_settings ? "true" : "false"
+      TERRAFORMER_LAMBDA_NAME = aws_lambda_function.instance_orchestrator_terraformer_lambda.arn
     }
   }
   function_name = "xosphere-instance-orchestrator-launcher"
@@ -1376,6 +1379,14 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
             "kms:Decrypt"
         ],
         "Resource": "${local.kms_key_pattern}"
+    },
+    {
+        "Sid": "AllowLambdaOperationsOnXosphereFunctions",
+        "Effect": "Allow",
+        "Action": [
+            "lambda:InvokeFunction"
+        ],
+        "Resource": "arn:aws:lambda:*:*:function:xosphere-*"
     }
   ]
 }
@@ -2759,6 +2770,102 @@ resource "aws_cloudwatch_log_group" "io_bridge_cloudwatch_log_group" {
 
   name = "/aws/lambda/xosphere-io-bridge"
   retention_in_days = var.io_bridge_lambda_log_retention
+  tags = var.tags
+}
+
+// Terraformer
+
+resource "aws_lambda_function" "instance_orchestrator_terraformer_lambda" {
+  s3_bucket = local.s3_bucket
+  s3_key = "terraformer-lambda-${local.version}.zip"
+  description = "Xosphere Instance Orchestrator Terraformer"
+  environment {
+    variables = {
+      INSTANCE_STATE_S3_BUCKET = aws_s3_bucket.instance_state_s3_bucket.id
+      TERRAFORM_VERSION = var.terraform_version
+      TERRAFORM_AWS_PROVIDER_VERSION = var.terraform_aws_provider_version
+      TERRAFORM_BACKEND_AWS_REGION = var.terraform_backend_aws_region
+      TERRAFORM_BACKEND_S3_BUCKET = var.terraform_backend_s3_bucket
+      TERRAFORM_BACKEND_S3_KEY = var.terraform_backend_s3_key
+    }
+  }
+  function_name = "xosphere-instance-orchestrator-terraformer"
+  handler = "terraformer"
+  memory_size = var.terraformer_memory_size
+  role = aws_iam_role.instance_orchestrator_terraformer_lambda_role.arn
+  runtime = "go1.x"
+  timeout = var.terraformer_lambda_timeout
+  tags = var.tags
+  depends_on = [ aws_cloudwatch_log_group.instance_orchestrator_terraformer_cloudwatch_log_group ]
+}
+
+resource "aws_iam_role" "instance_orchestrator_terraformer_lambda_role" {
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": { "Service": "lambda.amazonaws.com" },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+  name = "xosphere-instance-orchestrator-terraformer-role"
+  path = "/"
+  tags = var.tags
+}
+
+resource "aws_iam_role_policy" "instance_orchestrator_terraformer_lambda_policy" {
+  name = "xosphere-instance-orchestrator-terraformer-policy"
+  role = aws_iam_role.instance_orchestrator_terraformer_lambda_role.id
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowS3OperationsOnXosphereObjects",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::xosphere-*/*",
+        "arn:aws:s3:::xosphere-*"
+      ]
+    },
+    {
+      "Sid": "AllowLogOperationsOnXosphereLogGroups",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+	  ],
+      "Resource": [
+        "arn:aws:logs:*:*:log-group:/aws/lambda/xosphere-*",
+        "arn:aws:logs:*:*:log-group:/aws/lambda/xosphere-*:log-stream:*"
+      ]
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_lambda_permission" "instance_orchestrator_terraformer_permission" {
+  action = "lambda:InvokeFunction"
+  function_name = "xosphere-instance-orchestrator-launcher"
+  principal = "lambda.amazonaws.com"
+  source_arn = aws_lambda_function.xosphere_instance_orchestrator_launcher_lambda.arn
+  statement_id = "AllowExecutionFromLambda"
+}
+
+resource "aws_cloudwatch_log_group" "instance_orchestrator_terraformer_cloudwatch_log_group" {
+  name = "/aws/lambda/xosphere-instance-orchestrator-terraformer"
+  retention_in_days = var.terraformer_lambda_log_retention
   tags = var.tags
 }
 
