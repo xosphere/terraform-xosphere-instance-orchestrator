@@ -1,5 +1,5 @@
 locals {
-  version = "0.21.5"
+  version = "0.22.0"
   api_token_arn = format("arn:aws:secretsmanager:%s:%s:secret:customer/%s", local.xo_account_region, var.xo_account_id, var.customer_id)
   regions = join(",", var.regions_enabled)
   kms_key_pattern = format("arn:aws:kms:%s:%s:key/*", local.xo_account_region, var.xo_account_id)
