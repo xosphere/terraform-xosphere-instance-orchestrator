@@ -333,3 +333,122 @@ variable "xo_account_id" {
 variable "endpoint_url" {
   default = "https://portal-api.xosphere.io/v1"
 }
+
+variable "enhanced_security_tag_restrictions" {
+  default = false
+}
+
+variable "enhanced_security_managed_resources" {
+  default = false
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## for internal testing only
+variable "logging_bucket_name_override" {
+  description = "An explicit name to use"
+  default = null
+}
+
+variable "state_bucket_name_override" {
+  description = "An explicit name to use"
+  default = null
+}
+
+variable "ami_cleaner_lambda_permission_name_override" {
+  description = "An explicit name to use"
+  default = null
+}
+
+variable "budget_driver_lambda_permission_name_override" {
+  description = "An explicit name to use"
+  default = null
+}
+
+variable "budget_lambda_permission_name_override" {
+  description = "An explicit name to use"
+  default = null
+}
+
+variable "dlq_handler_lambda_permission_name_override" {
+  description = "An explicit name to use"
+  default = null
+}
+
+variable "group_inspector_schedule_cloudwatch_event_lambda_permission_name_override" {
+  description = "An explicit name to use"
+  default = null
+}
+
+variable "launcher_lambda_permission_name_override" {
+  description = "An explicit name to use"
+  default = null
+}
+
+variable "scheduler_lambda_permission_name_override" {
+  description = "An explicit name to use"
+  default = null
+}
+
+variable "snapshot_creator_lambda_permission_name_override" {
+  description = "An explicit name to use"
+  default = null
+}
+
+variable "snapshot_creator_sqs_lambda_permission_name_override" {
+  description = "An explicit name to use"
+  default = null
+}
+
+variable "event_router_lambda_permission_name_override" {
+  description = "An explicit name to use"
+  default = null
+}
+
+variable "io_bridge_permission_name_override" {
+  description = "An explicit name to use"
+  default = null
+}
+
+variable "orchestrator_lambda_permission_name_override" {
+  description = "An explicit name to use"
+  default = null
+}
+
+variable "secretsmanager_arn_override" {
+  description = "An explicit name to use"
+  default = null
+}
