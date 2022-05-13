@@ -308,6 +308,7 @@ variable "terraform_backend_s3_bucket" {
 
 variable "terraform_backend_s3_key" {
   description = "The S3 key for Terraform backend"
+  default = ""
 }
 
 variable "terraformer_memory_size" {
