@@ -50,6 +50,14 @@ resource "aws_s3_bucket_policy" "instance_state_s3_logging_bucket_policy" {
 EOF
 }
 
+resource "aws_s3_bucket_public_access_block" "instance_state_s3_logging_bucket_public_access_block" {
+  bucket = aws_s3_bucket.instance_state_s3_logging_bucket.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
 resource "aws_s3_bucket" "instance_state_s3_bucket" {
   force_destroy = true
   bucket_prefix = var.state_bucket_name_override == null ? "xosphere-instance-orchestrator" : null
@@ -89,6 +97,14 @@ resource "aws_s3_bucket_policy" "instance_state_s3_bucket_policy" {
   ]
 }
 EOF
+}
+
+resource "aws_s3_bucket_public_access_block" "instance_state_s3_bucket_public_access_block" {
+  bucket = aws_s3_bucket.instance_state_s3_bucket.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
 }
 
 resource "aws_sqs_queue" "instance_orchestrator_launcher_dlq" {
@@ -883,6 +899,7 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
         "ec2:DescribeTags",
         "ec2:DescribeVolumes",
         "ecs:ListClusters",
+        "eks:DescribeNodegroup",
         "elasticloadbalancing:DescribeInstanceHealth",
         "elasticloadbalancing:DescribeLoadBalancers",
         "elasticloadbalancing:DescribeTargetGroups",
@@ -895,11 +912,13 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
       "Effect": "Allow",
       "Action": [
         "autoscaling:AttachInstances",
-        "autoscaling:CreateOrUpdateTags",
-        "autoscaling:DeleteTags",
         "autoscaling:BatchPutScheduledUpdateGroupAction",
         "autoscaling:BatchDeleteScheduledAction",
+        "autoscaling:CreateOrUpdateTags",
+        "autoscaling:DeleteTags",
         "autoscaling:DetachInstances",
+        "autoscaling:ResumeProcesses",
+        "autoscaling:SuspendProcesses",
         "autoscaling:UpdateAutoScalingGroup"
       ],
       "Resource": "arn:*:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/*",
@@ -1119,6 +1138,7 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
         }
       }
     },
+%{ if var.enhanced_security_managed_resources }
     {
       "Sid": "AllowEc2CreateTagsOnEnabled",
       "Effect": "Allow",
@@ -1134,6 +1154,16 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
         }
       }
     },
+%{ else }
+    {
+      "Sid": "AllowEc2CreateTags",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+      ],
+      "Resource": "*"
+    },
+%{ endif }    
     {
       "Sid": "AllowEc2CreateTagsOnXogroups",
       "Effect": "Allow",
@@ -1281,6 +1311,25 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy_additional
         "ecs:DeregisterContainerInstance" %{ if false } # should use ResourceTag 'authorized', but no Condition Key currently available in IAM %{ endif }
   	  ],
       "Resource": "arn:*:ecs:*:*:cluster/*"
+    },
+    {
+      "Sid": "AllowAutoScalingOperationsOnEksNodeGroups",
+      "Effect": "Allow",
+      "Action": [
+        "autoscaling:CreateOrUpdateTags"
+  	  ],
+      "Resource": "arn:*:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/*",
+      "Condition": {
+        "ForAllValues:StringLike": {
+          "aws:ResourceTag/eks:nodegroup-name": [ "*" ],
+          "aws:ResourceTag/eks:cluster-name": [ "*" ]
+        },
+        "ForAllValues:StringEquals": {
+          "aws:TagKeys": [
+            "xosphere.io/instance-orchestrator/enabled"
+          ]
+        }
+      }
     }
   ]
 }
@@ -1391,6 +1440,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
         "ec2:DescribeTags",
         "ec2:DescribeSnapshots",
         "ec2:DescribeVolumes",
+        "ec2:DescribeNetworkInterfaces",
         "elasticloadbalancing:DescribeInstanceHealth",
         "elasticloadbalancing:DescribeTargetHealth"
       ],
@@ -1627,7 +1677,8 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
         "ec2:DeleteTags",
         "ec2:StartInstances",
         "ec2:StopInstances",
-        "ec2:TerminateInstances"
+        "ec2:TerminateInstances",
+        "ec2:ModifyNetworkInterfaceAttribute"
       ],
       "Resource": "*",
       "Condition": {
@@ -1642,12 +1693,20 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
       "Sid": "AllowPassRoleToEc2Instances",
       "Effect": "Allow",
       "Action": [
-		"iam:PassRole"
-	  ],
+        "iam:PassRole"
+	    ],
       "Resource": "${var.passrole_arn_resource_pattern}",
       "Condition": {
         "StringEquals": {"iam:PassedToService": "ec2.amazonaws.com"}
       }
+    },
+    {
+      "Sid": "AllowLambdaOperationsOnXosphereFunctions",
+      "Effect": "Allow",
+      "Action": [
+		    "lambda:InvokeFunction"
+	    ],
+      "Resource": "arn:aws:lambda:*:*:function:xosphere-*"
     },
     {
       "Sid": "AllowLogOperationsOnXosphereLogGroups",
@@ -3459,12 +3518,7 @@ resource "aws_iam_policy" "run_instances_managed_policy" {
       "Action": [
         "ec2:RunInstances"
       ],
-      "NotResource": [
-        "arn:*:ec2:*:*:instance/*",
-        "arn:*:ec2:*:*:network-interface/*",
-        "arn:*:ec2:*:*:volume/*",
-        "arn:*:elastic-inference:*:*:elastic-inference-accelerator/*"
-      ]
+      "Resource": "*"
     },
 %{ endif }
     {
@@ -3662,10 +3716,8 @@ EOF
 
 resource "aws_lambda_permission" "instance_orchestrator_terraformer_permission" {
   action = "lambda:InvokeFunction"
-  function_name = "xosphere-instance-orchestrator-launcher"
+  function_name = aws_lambda_function.instance_orchestrator_terraformer_lambda.arn
   principal = "lambda.amazonaws.com"
-  source_arn = aws_lambda_function.xosphere_instance_orchestrator_launcher_lambda.arn
-  statement_id = "AllowExecutionFromLambda"
 }
 
 resource "aws_cloudwatch_log_group" "instance_orchestrator_terraformer_cloudwatch_log_group" {
