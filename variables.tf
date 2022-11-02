@@ -321,9 +321,19 @@ variable "terraform_backend_s3_key" {
   default = ""
 }
 
+variable "terraform_backend_dynamodb_table" {
+  description = "The dynamoDB table name for Terraform backend"
+  default = ""
+}
+
 variable "terraformer_memory_size" {
   description = "Memory size allocated to Lambda"
   default = 128
+}
+
+variable "terraformer_ephemeral_storage" {
+  description = "Ephemeral storage size allocated to Lambda"
+  default = 1024
 }
 
 variable "terraformer_lambda_timeout" {
