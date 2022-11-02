@@ -1,5 +1,5 @@
 locals {
-  version = "0.24.2"
+  version = "0.24.3"
   api_token_arn = (var.secretsmanager_arn_override == null) ? format("arn:aws:secretsmanager:%s:%s:secret:customer/%s", local.xo_account_region, var.xo_account_id, var.customer_id) : var.secretsmanager_arn_override
   api_token_pattern = (var.secretsmanager_arn_override == null) ? format("arn:aws:secretsmanager:%s:%s:secret:customer/%s-??????", local.xo_account_region, var.xo_account_id, var.customer_id) : var.secretsmanager_arn_override
   regions = join(",", var.regions_enabled)
@@ -7,6 +7,8 @@ locals {
   s3_bucket = "xosphere-io-releases-${data.aws_region.current.name}"
   xo_account_region = "us-west-2"
   has_global_terraform_settings = var.terraform_version != "" || var.terraform_aws_provider_version != "" || var.terraform_backend_aws_region != "" || var.terraform_backend_s3_bucket != "" || var.terraform_backend_s3_key != ""
+  needDefineTerraformS3Permission = var.terraform_backend_s3_bucket != "" && var.terraform_backend_aws_region != ""
+  needDefineTerraformDynamoDBPermission = var.terraform_backend_dynamodb_table != ""
   k8s_vpc_enabled = (length(var.k8s_vpc_security_group_ids) > 0) ? "true" : "false"
 }
 
@@ -3646,6 +3648,7 @@ resource "aws_lambda_function" "instance_orchestrator_terraformer_lambda" {
       TERRAFORM_BACKEND_AWS_REGION = var.terraform_backend_aws_region
       TERRAFORM_BACKEND_S3_BUCKET = var.terraform_backend_s3_bucket
       TERRAFORM_BACKEND_S3_KEY = var.terraform_backend_s3_key
+      TERRAFORM_BACKEND_DYNAMODB_TABLE = var.terraform_backend_dynamodb_table
     }
   }
   function_name = "xosphere-instance-orchestrator-terraformer"
@@ -3655,6 +3658,9 @@ resource "aws_lambda_function" "instance_orchestrator_terraformer_lambda" {
   runtime = "go1.x"
   timeout = var.terraformer_lambda_timeout
   tags = var.tags
+  ephemeral_storage {
+    size = var.terraformer_ephemeral_storage
+  }
   depends_on = [ aws_cloudwatch_log_group.instance_orchestrator_terraformer_cloudwatch_log_group ]
 }
 
@@ -3696,6 +3702,39 @@ resource "aws_iam_role_policy" "instance_orchestrator_terraformer_lambda_policy"
         "arn:aws:s3:::xosphere-*"
       ]
     },
+%{ if local.needDefineTerraformS3Permission }
+    {
+      "Sid": "AllowS3BucketOperationsOnTerraformBackend",
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket"
+      ],
+      "Resource": "arn:aws:s3:::${var.terraform_backend_s3_bucket}"
+    },
+    {
+      "Sid": "AllowS3ObjectOperationsOnTerraformBackend",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": "arn:aws:s3:::${var.terraform_backend_s3_bucket}/*"
+    },
+%{ endif }
+%{ if local.needDefineTerraformDynamoDBPermission }
+    {
+      "Sid": "AllowDynamoDBOperationOnTerraformBackend",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:DescribeTable",
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:DeleteItem"
+      ],
+      "Resource": "arn:aws:dynamodb:*:*:table/${var.terraform_backend_dynamodb_table}"
+    },
+%{ endif }
     {
       "Sid": "AllowLogOperationsOnXosphereLogGroups",
       "Effect": "Allow",
