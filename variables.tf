@@ -362,6 +362,10 @@ variable "enhanced_security_managed_resources" {
   default = false
 }
 
+variable "create_logging_buckets" {
+  default = false
+}
+
 
 
 

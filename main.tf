@@ -16,6 +16,7 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 resource "aws_s3_bucket" "instance_state_s3_logging_bucket" {
+  count = var.create_logging_buckets ? 1 : 0
   acl = "log-delivery-write"
   server_side_encryption_configuration {
     rule {
@@ -31,7 +32,8 @@ resource "aws_s3_bucket" "instance_state_s3_logging_bucket" {
 }
 
 resource "aws_s3_bucket_policy" "instance_state_s3_logging_bucket_policy" {
-  bucket = aws_s3_bucket.instance_state_s3_logging_bucket.id
+  count = var.create_logging_buckets ? 1 : 0
+  bucket = aws_s3_bucket.instance_state_s3_logging_bucket[0].id
   policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -42,7 +44,7 @@ resource "aws_s3_bucket_policy" "instance_state_s3_logging_bucket_policy" {
         "s3:GetObject"
       ],
       "Effect": "Allow",
-      "Resource": "${aws_s3_bucket.instance_state_s3_logging_bucket.arn}/*",
+      "Resource": "${aws_s3_bucket.instance_state_s3_logging_bucket[0].arn}/*",
       "Principal": {
         "AWS": "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
       }
@@ -53,7 +55,8 @@ EOF
 }
 
 resource "aws_s3_bucket_public_access_block" "instance_state_s3_logging_bucket_public_access_block" {
-  bucket = aws_s3_bucket.instance_state_s3_logging_bucket.id
+  count = var.create_logging_buckets ? 1 : 0
+  bucket = aws_s3_bucket.instance_state_s3_logging_bucket[0].id
   block_public_acls       = true
   block_public_policy     = true
   ignore_public_acls      = true
@@ -72,9 +75,13 @@ resource "aws_s3_bucket" "instance_state_s3_bucket" {
       }
     }
   }
-  logging {
-    target_bucket = aws_s3_bucket.instance_state_s3_logging_bucket.id
-    target_prefix = "xosphere-instance-orchestrator-logs"
+
+  dynamic "logging" {
+    for_each = var.create_logging_buckets ? [1] : []
+    content {
+      target_bucket = aws_s3_bucket.instance_state_s3_logging_bucket[0].id
+      target_prefix = "xosphere-instance-orchestrator-logs"
+    }
   }
   tags = var.tags
 }
