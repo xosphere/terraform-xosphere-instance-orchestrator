@@ -1,7 +1,5 @@
 # Xosphere Instance Orchestration configuration
-variable "customer_id" {
-
-}
+variable "customer_id" {}
 
 variable "tags" {
   description = "Map of tag keys and values to be applied to objects created by this module (where applicable)"
@@ -249,6 +247,11 @@ variable "event_router_lambda_log_retention" {
   default = 30
 }
 
+variable "event_router_enhancer_lambda_log_retention" {
+  description = "Lambda function log file retention in days"
+  default = 30
+}
+
 variable "k8s_vpc_security_group_ids" {
   description = "The security group ids for VPC in Kubernetes cluster"
   type = list
@@ -284,6 +287,12 @@ variable "sns_arn_resource_pattern" {
 variable "passrole_arn_resource_pattern" {
   description = "ARN pattern to use for IAM PassRole for EC2"
   default = "*"
+}
+
+variable "enable_code_deploy_integration" {
+  type = bool
+  description = "If CodeDeploy Integration is enabled"
+  default = true
 }
 
 variable "codedeploy_passrole_arn_resource_pattern" {
@@ -346,6 +355,21 @@ variable "terraformer_lambda_log_retention" {
   default = 30
 }
 
+variable "attacher_memory_size" {
+  description = "Memory size allocated to Lambda"
+  default = 128
+}
+
+variable "attacher_lambda_timeout" {
+  description = "Lambda function execution timeout"
+  default = 900
+}
+
+variable "attacher_lambda_log_retention" {
+  description = "Lambda function log file retention in days"
+  default = 30
+}
+
 variable "xo_account_id" {
   default = "143723790106"
 }
@@ -355,15 +379,50 @@ variable "endpoint_url" {
 }
 
 variable "enhanced_security_tag_restrictions" {
+  type = bool
   default = false
 }
 
 variable "enhanced_security_managed_resources" {
+  type = bool
   default = false
 }
 
 variable "create_logging_buckets" {
+  type = bool
   default = false
+}
+
+variable "management_account_data_bucket" {
+  default = ""
+}
+  
+variable "management_account_region" {
+  default = ""
+}
+
+variable "management_aws_account_id" {
+  default = ""
+}
+
+variable "reserved_instances_regional_buffer" {
+  default = ""
+  description = "Reserved Instances Regional buffer (Overrides Org level setting)"
+}
+
+variable "reserved_instances_az_buffer" {
+  default = ""
+  description = "Reserved Instances AZ buffer (Overrides Org level setting)"
+}
+
+variable "ec2_instance_savings_plan_buffer" {
+  default = ""
+  description = "Ec2 Instance Savings Plan buffer (Overrides Org level setting)"
+}
+
+variable "compute_savings_plan_buffer" {
+  default = ""
+  description = "Compute Savings Plan buffer (Overrides Org level setting)"
 }
 
 
@@ -401,7 +460,16 @@ variable "create_logging_buckets" {
 
 
 
-## for internal testing only
+
+
+
+## for internal use only
+variable "ignore_lambda_s3_link_changes" {
+  type = bool
+  description = "If lambdas should ignore e.g. last_modified"
+  default = false
+}
+
 variable "logging_bucket_name_override" {
   description = "An explicit name to use"
   default = null
@@ -437,6 +505,11 @@ variable "group_inspector_schedule_cloudwatch_event_lambda_permission_name_overr
   default = null
 }
 
+variable "group_inspector_sqs_lambda_permission_name_override" {
+  description = "An explicit name to use"
+  default = null
+}
+
 variable "launcher_lambda_permission_name_override" {
   description = "An explicit name to use"
   default = null
@@ -462,12 +535,27 @@ variable "event_router_lambda_permission_name_override" {
   default = null
 }
 
+variable "event_router_enhancer_lambda_permission_name_override" {
+  description = "An explicit name to use"
+  default = null
+}
+
 variable "io_bridge_permission_name_override" {
   description = "An explicit name to use"
   default = null
 }
 
 variable "orchestrator_lambda_permission_name_override" {
+  description = "An explicit name to use"
+  default = null
+}
+
+variable "instance_orchestrator_terraformer_permission_name_override" {
+  description = "An explicit name to use"
+  default = null
+}
+
+variable "instance_orchestrator_attacher_permission_name_override" {
   description = "An explicit name to use"
   default = null
 }
