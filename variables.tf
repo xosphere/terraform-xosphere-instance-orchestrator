@@ -550,12 +550,12 @@ variable "orchestrator_lambda_permission_name_override" {
   default = null
 }
 
-variable "instance_orchestrator_terraformer_permission_name_override" {
+variable "instance_orchestrator_terraformer_lambda_permission_name_override" {
   description = "An explicit name to use"
   default = null
 }
 
-variable "instance_orchestrator_attacher_permission_name_override" {
+variable "instance_orchestrator_attacher_lambda_permission_name_override" {
   description = "An explicit name to use"
   default = null
 }
