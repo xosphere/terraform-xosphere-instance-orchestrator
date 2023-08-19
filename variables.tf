@@ -388,6 +388,11 @@ variable "enhanced_security_managed_resources" {
   default = false
 }
 
+variable "enhanced_security_use_cmk" {
+  type = bool
+  default = false
+}
+
 variable "create_logging_buckets" {
   type = bool
   default = false
@@ -464,12 +469,6 @@ variable "compute_savings_plan_buffer" {
 
 
 ## for internal use only
-variable "ignore_lambda_s3_link_changes" {
-  type = bool
-  description = "If lambdas should ignore e.g. last_modified"
-  default = false
-}
-
 variable "logging_bucket_name_override" {
   description = "An explicit name to use"
   default = null

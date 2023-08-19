@@ -9,7 +9,8 @@ locals {
   has_global_terraform_settings = var.terraform_version != "" || var.terraform_aws_provider_version != "" || var.terraform_backend_aws_region != "" || var.terraform_backend_s3_bucket != "" || var.terraform_backend_s3_key != ""
   needDefineTerraformS3Permission = var.terraform_backend_s3_bucket != "" && var.terraform_backend_aws_region != ""
   needDefineTerraformDynamoDBPermission = var.terraform_backend_dynamodb_table != ""
-  k8s_vpc_enabled = (length(var.k8s_vpc_security_group_ids) > 0) ? "true" : "false"
+  k8s_vpc_enabled = (length(var.k8s_vpc_security_group_ids) > 0)
+  k8s_vpc_enabled_string = local.k8s_vpc_enabled ? "true" : "false"
   organization_management_account_enabled = var.management_account_region != "" || var.management_aws_account_id != ""
 
   wellknown__xosphere_event_router_lambda_role = "xosphere-event-router-lambda-role"
@@ -79,7 +80,8 @@ resource "aws_s3_bucket" "instance_state_s3_bucket" {
   server_side_encryption_configuration {
     rule {
       apply_server_side_encryption_by_default {
-        sse_algorithm = "AES256"
+        sse_algorithm = var.enhanced_security_use_cmk ? "aws:kms": "AES256"
+        kms_master_key_id = var.enhanced_security_use_cmk ? aws_kms_key.xosphere_kms_key[0].arn : null
       }
     }
   }
@@ -140,7 +142,7 @@ resource "aws_s3_bucket_public_access_block" "instance_state_s3_bucket_public_ac
 resource "aws_sqs_queue" "instance_orchestrator_launcher_dlq" {
   name = "xosphere-instance-orchestrator-launch-dlq"
   visibility_timeout_seconds = 300
-  kms_master_key_id = "alias/aws/sqs"
+  kms_master_key_id = var.enhanced_security_use_cmk ? aws_kms_key.xosphere_kms_key[0].arn : "alias/aws/sqs"
   tags = var.tags
 }
 
@@ -151,14 +153,14 @@ resource "aws_sqs_queue" "instance_orchestrator_launcher_queue" {
     maxReceiveCount = 5
   })
   visibility_timeout_seconds = 1020
-  kms_master_key_id = "alias/aws/sqs"
+  kms_master_key_id = var.enhanced_security_use_cmk ? aws_kms_key.xosphere_kms_key[0].arn : "alias/aws/sqs"
   tags = var.tags
 }
 
 resource "aws_sqs_queue" "instance_orchestrator_event_router_dlq" {
   name = "xosphere-instance-orchestrator-event-router-dlq"
   visibility_timeout_seconds = 300
-  kms_master_key_id = "alias/aws/sqs"
+  kms_master_key_id = var.enhanced_security_use_cmk ? aws_kms_key.xosphere_kms_key[0].arn : "alias/aws/sqs"
   tags = var.tags
 }
 
@@ -169,14 +171,14 @@ resource "aws_sqs_queue" "instance_orchestrator_event_router_queue" {
     maxReceiveCount = 5
   })
   visibility_timeout_seconds = 1020
-  kms_master_key_id = "alias/aws/sqs"
+  kms_master_key_id = var.enhanced_security_use_cmk ? aws_kms_key.xosphere_kms_key[0].arn : "alias/aws/sqs"
   tags = var.tags
 }
 
 resource "aws_sqs_queue" "instance_orchestrator_event_router_enhancer_dlq" {
   name = "xosphere-instance-orchestrator-event-router-enhancer-dlq"
   visibility_timeout_seconds = 300
-  kms_master_key_id = "alias/aws/sqs"
+  kms_master_key_id = var.enhanced_security_use_cmk ? aws_kms_key.xosphere_kms_key[0].arn : "alias/aws/sqs"
   tags = var.tags
 }
 
@@ -187,14 +189,14 @@ resource "aws_sqs_queue" "instance_orchestrator_event_router_enhancer_queue" {
     maxReceiveCount = 5
   })
   visibility_timeout_seconds = 1020
-  kms_master_key_id = "alias/aws/sqs"
+  kms_master_key_id = var.enhanced_security_use_cmk ? aws_kms_key.xosphere_kms_key[0].arn : "alias/aws/sqs"
   tags = var.tags
 }
 
 resource "aws_sqs_queue" "instance_orchestrator_schedule_dlq" {
   name = "xosphere-instance-orchestrator-schedule-dlq"
   visibility_timeout_seconds = 300
-  kms_master_key_id = "alias/aws/sqs"
+  kms_master_key_id = var.enhanced_security_use_cmk ? aws_kms_key.xosphere_kms_key[0].arn : "alias/aws/sqs"
   tags = var.tags
 }
 
@@ -205,14 +207,14 @@ resource "aws_sqs_queue" "instance_orchestrator_schedule_queue" {
     maxReceiveCount = 5
   })
   visibility_timeout_seconds = 1020
-  kms_master_key_id = "alias/aws/sqs"
+  kms_master_key_id = var.enhanced_security_use_cmk ? aws_kms_key.xosphere_kms_key[0].arn : "alias/aws/sqs"
   tags = var.tags
 }
 
 resource "aws_sqs_queue" "instance_orchestrator_snapshot_dlq" {
   name = "xosphere-instance-orchestrator-snapshot-dlq"
   visibility_timeout_seconds = 300
-  kms_master_key_id = "alias/aws/sqs"
+  kms_master_key_id = var.enhanced_security_use_cmk ? aws_kms_key.xosphere_kms_key[0].arn : "alias/aws/sqs"
   tags = var.tags
 }
 
@@ -223,14 +225,14 @@ resource "aws_sqs_queue" "instance_orchestrator_snapshot_queue" {
     maxReceiveCount = 5
   })
   visibility_timeout_seconds = 1020
-  kms_master_key_id = "alias/aws/sqs"
+  kms_master_key_id = var.enhanced_security_use_cmk ? aws_kms_key.xosphere_kms_key[0].arn : "alias/aws/sqs"
   tags = var.tags
 }
 
 resource "aws_sqs_queue" "instance_orchestrator_budget_dlq" {
   name = "xosphere-instance-orchestrator-budget-dlq"
   visibility_timeout_seconds = 300
-  kms_master_key_id = "alias/aws/sqs"
+  kms_master_key_id = var.enhanced_security_use_cmk ? aws_kms_key.xosphere_kms_key[0].arn : "alias/aws/sqs"
   tags = var.tags
 }
 
@@ -241,14 +243,14 @@ resource "aws_sqs_queue" "instance_orchestrator_budget_queue" {
     maxReceiveCount = 5
   })
   visibility_timeout_seconds = 1020
-  kms_master_key_id = "alias/aws/sqs"
+  kms_master_key_id = var.enhanced_security_use_cmk ? aws_kms_key.xosphere_kms_key[0].arn : "alias/aws/sqs"
   tags = var.tags
 }
 
 resource "aws_sqs_queue" "instance_orchestrator_group_inspector_dlq" {
   name = "xosphere-instance-orchestrator-group-inspector-dlq"
   visibility_timeout_seconds = 300
-  kms_master_key_id = "alias/aws/sqs"
+  kms_master_key_id = var.enhanced_security_use_cmk ? aws_kms_key.xosphere_kms_key[0].arn : "alias/aws/sqs"
   tags = var.tags
 }
 
@@ -259,14 +261,14 @@ resource "aws_sqs_queue" "instance_orchestrator_group_inspector_queue" {
     maxReceiveCount = 5
   })
   visibility_timeout_seconds = 1020
-  kms_master_key_id = "alias/aws/sqs"
+  kms_master_key_id = var.enhanced_security_use_cmk ? aws_kms_key.xosphere_kms_key[0].arn : "alias/aws/sqs"
   tags = var.tags
 }
 
 resource "aws_sqs_queue" "instance_orchestrator_scheduler_cloudwatch_event_dlq" {
   name = "xosphere-instance-orchestrator-schedule-cwe-dlq"
   visibility_timeout_seconds = 300
-  kms_master_key_id = "alias/aws/sqs"
+  kms_master_key_id = var.enhanced_security_use_cmk ? aws_kms_key.xosphere_kms_key[0].arn : "alias/aws/sqs"
   tags = var.tags
 }
 
@@ -277,14 +279,14 @@ resource "aws_sqs_queue" "instance_orchestrator_scheduler_cloudwatch_event_queue
     maxReceiveCount = 5
   })
   visibility_timeout_seconds = 1020
-  kms_master_key_id = "alias/aws/sqs"
+  kms_master_key_id = var.enhanced_security_use_cmk ? aws_kms_key.xosphere_kms_key[0].arn : "alias/aws/sqs"
   tags = var.tags
 }
 
 resource "aws_sqs_queue" "xosphere_terminator_dlq" {
   name = "xosphere-instance-orchestrator-terminator-dlq"
   visibility_timeout_seconds = 300
-  kms_master_key_id = "alias/aws/sqs"
+  kms_master_key_id = var.enhanced_security_use_cmk ? aws_kms_key.xosphere_kms_key[0].arn : "alias/aws/sqs"
   tags = var.tags
 }
 
@@ -295,14 +297,14 @@ resource "aws_sqs_queue" "xosphere_terminator_queue" {
     maxReceiveCount = 5
   })
   visibility_timeout_seconds = 1020
-  kms_master_key_id = "alias/aws/sqs"
+  kms_master_key_id = var.enhanced_security_use_cmk ? aws_kms_key.xosphere_kms_key[0].arn : "alias/aws/sqs"
   tags = var.tags
 }
 
 resource "aws_sqs_queue" "instance_orchestrator_xogroup_enabler_dlq" {
   name = "xosphere-instance-orchestrator-xogroup-enabler-dlq"
   visibility_timeout_seconds = 300
-  kms_master_key_id = "alias/aws/sqs"
+  kms_master_key_id = var.enhanced_security_use_cmk ? aws_kms_key.xosphere_kms_key[0].arn : "alias/aws/sqs"
   tags = var.tags
 }
 
@@ -313,7 +315,7 @@ resource "aws_sqs_queue" "instance_orchestrator_xogroup_enabler_queue" {
     maxReceiveCount = 5
   })
   visibility_timeout_seconds = 1020
-  kms_master_key_id = "alias/aws/sqs"
+  kms_master_key_id = var.enhanced_security_use_cmk ? aws_kms_key.xosphere_kms_key[0].arn : "alias/aws/sqs"
   tags = var.tags
 }
 
@@ -375,11 +377,8 @@ resource "aws_lambda_function" "xosphere_event_router_enhancer_lambda" {
       GROUP_INSPECTOR_QUEUE_URL = aws_sqs_queue.instance_orchestrator_group_inspector_queue.id
       ENHANCER_MODE = "true"
       ENHANCER_SQS_QUEUE_URL = aws_sqs_queue.instance_orchestrator_event_router_enhancer_queue.id
-      # JUSTIN
-# %{ if local.organization_management_account_enabled }
-#       ORGANIZATION_EC2_STATE_CHANGE_EVENT_COLLECTOR_SQS_QUEUE_URL = join("", ["https://sqs.", var.management_account_region, ".amazonaws.com/", var.management_aws_account_id, "/", local.wellknown__xosphere_organization_instance_state_event_collector_queue_name])
-#       ORGANIZATION_REGION = var.management_account_region
-# %{ endif }
+      ORGANIZATION_EC2_STATE_CHANGE_EVENT_COLLECTOR_SQS_QUEUE_URL = local.organization_management_account_enabled ? join("", ["https://sqs.", var.management_account_region, ".amazonaws.com/", var.management_aws_account_id, "/", local.wellknown__xosphere_organization_instance_state_event_collector_queue_name]) : null
+      ORGANIZATION_REGION = local.organization_management_account_enabled ? var.management_account_region : null
       GROUP_INSPECTOR_NOTIFICATION_EVENT_INSTANCE_STATES = local.statemap__group_inspector
       ORGANIZATION_INVENTORY_UPDATES_SUBMITTER_ROLE_NAME = local.wellknown__xosphere_organization_inventory_updates_submitter_role
     }
@@ -452,7 +451,7 @@ resource "aws_iam_role_policy" "xosphere_event_router_iam_role_policy" {
         "logs:CreateLogGroup",
         "logs:CreateLogStream",
         "logs:PutLogEvents"
-	  ],
+	    ],
       "Resource": [
         "arn:aws:logs:*:*:log-group:/aws/lambda/xosphere-*",
         "arn:aws:logs:*:*:log-group:/aws/lambda/xosphere-*:log-stream:*"
@@ -462,15 +461,15 @@ resource "aws_iam_role_policy" "xosphere_event_router_iam_role_policy" {
       "Sid": "AllowLambdaOperationsOnXosphereFunctions",
       "Effect": "Allow",
       "Action": [
-		"lambda:InvokeFunction"
-	  ],
+		    "lambda:InvokeFunction"
+	    ],
       "Resource": "arn:aws:lambda:*:*:function:xosphere-*"
     },
     {
       "Sid": "AllowSqsOperationsOnXosphereQueues",
       "Effect": "Allow",
       "Action": [
-		"sqs:ChangeMessageVisibility",
+        "sqs:ChangeMessageVisibility",
         "sqs:DeleteMessage",
         "sqs:GetQueueAttributes",
         "sqs:ReceiveMessage",
@@ -483,8 +482,38 @@ resource "aws_iam_role_policy" "xosphere_event_router_iam_role_policy" {
         "${aws_sqs_queue.instance_orchestrator_group_inspector_queue.arn}",
         "${aws_sqs_queue.instance_orchestrator_event_router_queue.arn}",
         "${aws_sqs_queue.instance_orchestrator_event_router_enhancer_queue.arn}"
+%{ if local.organization_management_account_enabled }
+        ,"${join("", ["arn:*:sqs:", var.management_account_region, ":", var.management_aws_account_id, ":", local.wellknown__xosphere_organization_instance_state_event_collector_queue_name])}"
+%{ endif }
       ]
     },
+%{ if local.organization_management_account_enabled }
+    {
+      "Sid": "AllowOrgKmsCmk",
+      "Effect": "Allow",
+      "Action": [
+        "kms:GenerateDataKey",
+        "kms:Decrypt"
+      ],
+      "Resource": "${join("", ["arn:*:kms:*:", var.management_aws_account_id, ":key/*"])}",
+      "Condition": {
+        "ForAnyValue:StringEquals": {
+          "kms:ResourceAliases": "alias/XosphereMgmtCmk"
+        }
+      }
+    },
+%{ endif }
+%{ if var.enhanced_security_use_cmk }
+    {
+      "Sid": "AllowKmsCmk",
+      "Effect": "Allow",
+      "Action": [
+        "kms:GenerateDataKey",
+        "kms:Decrypt"
+      ],
+      "Resource": "${aws_kms_key.xosphere_kms_key[0].arn}"
+    },
+%{ endif }
     {
       "Sid": "AllowDetectInventoryCollectorInstalled",
       "Effect": "Allow",
@@ -587,6 +616,17 @@ resource "aws_iam_role_policy" "xosphere_event_relay_iam_role_policy" {
       "Action": [ "sqs:SendMessage" ],
       "Resource": "${aws_sqs_queue.instance_orchestrator_event_router_queue.arn}"
     }
+%{ if var.enhanced_security_use_cmk }
+    ,{
+      "Sid": "AllowKmsCmk",
+      "Effect": "Allow",
+      "Action": [
+        "kms:GenerateDataKey",
+        "kms:Decrypt"
+      ],
+      "Resource": "${aws_kms_key.xosphere_kms_key[0].arn}"
+    }
+%{ endif }
   ]
 }
 EOF
@@ -636,7 +676,7 @@ resource "aws_lambda_function" "xosphere_terminator_lambda" {
       API_TOKEN_ARN = local.api_token_arn
       ENDPOINT_URL = var.endpoint_url
       IO_BRIDGE_NAME = "xosphere-io-bridge"
-      K8S_VPC_ENABLED = local.k8s_vpc_enabled
+      K8S_VPC_ENABLED = local.k8s_vpc_enabled_string
       ENABLE_ECS = var.enable_ecs
     }
   }
@@ -808,6 +848,17 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
         "arn:aws:s3:::xosphere-*"
       ]
     },
+%{ if var.enhanced_security_use_cmk }
+    {
+      "Sid": "AllowKmsCmk",
+      "Effect": "Allow",
+      "Action": [
+        "kms:GenerateDataKey",
+        "kms:Decrypt"
+      ],
+      "Resource": "${aws_kms_key.xosphere_kms_key[0].arn}"
+    },
+%{ endif }
     {
         "Sid": "AllowSnsOperationsOnXosphereTopics",
         "Effect": "Allow",
@@ -947,7 +998,7 @@ resource "aws_lambda_function" "xosphere_instance_orchestrator_lambda" {
       ENABLE_ECS = var.enable_ecs
       IO_BRIDGE_NAME = local.k8s_vpc_enabled ? aws_lambda_function.xosphere_io_bridge_lambda[0].id : "xosphere-io-bridge"
       ATTACHER_NAME = aws_lambda_function.instance_orchestrator_attacher_lambda.function_name
-      K8S_VPC_ENABLED = local.k8s_vpc_enabled
+      K8S_VPC_ENABLED = local.k8s_vpc_enabled_string
       K8S_DRAIN_TIMEOUT_IN_MINS = var.k8s_drain_timeout_in_mins
       RESERVED_INSTANCES_REGIONAL_BUFFER = var.reserved_instances_regional_buffer
       RESERVED_INSTANCES_AZ_BUFFER = var.reserved_instances_az_buffer
@@ -1211,6 +1262,33 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
         "arn:aws:s3:::xosphere-*"
       ]
     },
+%{ if local.organization_management_account_enabled }
+    {
+      "Sid": "AllowOrgKmsCmk",
+      "Effect": "Allow",
+      "Action": [
+        "kms:GenerateDataKey",
+        "kms:Decrypt"
+      ],
+      "Resource": "${join("", ["arn:*:kms:*:", var.management_aws_account_id, ":key/*"])}",
+      "Condition": {
+        "ForAnyValue:StringEquals": {
+          "kms:ResourceAliases": "alias/XosphereMgmtCmk"
+        }
+      }
+    },
+%{ endif }
+%{ if var.enhanced_security_use_cmk }
+    {
+      "Sid": "AllowKmsCmk",
+      "Effect": "Allow",
+      "Action": [
+        "kms:GenerateDataKey",
+        "kms:Decrypt"
+      ],
+      "Resource": "${aws_kms_key.xosphere_kms_key[0].arn}"
+    },
+%{ endif }
     {
         "Sid": "AllowSnsOperationsOnXosphereTopics",
         "Effect": "Allow",
@@ -1944,6 +2022,17 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
         "arn:aws:s3:::xosphere-*"
       ]
     },
+%{ if var.enhanced_security_use_cmk }
+    {
+      "Sid": "AllowKmsCmk",
+      "Effect": "Allow",
+      "Action": [
+        "kms:GenerateDataKey",
+        "kms:Decrypt"
+      ],
+      "Resource": "${aws_kms_key.xosphere_kms_key[0].arn}"
+    },
+%{ endif }
     {
         "Sid": "AllowSnsOperationsOnXosphereTopics",
         "Effect": "Allow",
@@ -2218,7 +2307,18 @@ resource "aws_iam_role_policy" "instance_orchestrator_scheduler_lambda_policy" {
         "arn:aws:s3:::xosphere-*"
       ]
     },
-	{
+%{ if var.enhanced_security_use_cmk }
+    {
+      "Sid": "AllowKmsCmk",
+      "Effect": "Allow",
+      "Action": [
+        "kms:GenerateDataKey",
+        "kms:Decrypt"
+      ],
+      "Resource": "${aws_kms_key.xosphere_kms_key[0].arn}"
+    },
+%{ endif }
+	  {
       "Sid": "AllowSqsOperationsOnXosphereQueues",
       "Effect": "Allow",
       "Action": [
@@ -2421,6 +2521,17 @@ resource "aws_iam_role_policy" "instance_orchestrator_xogroup_enabler_lambda_pol
         "arn:aws:s3:::xosphere-*"
       ]
     },
+%{ if var.enhanced_security_use_cmk }
+    {
+      "Sid": "AllowKmsCmk",
+      "Effect": "Allow",
+      "Action": [
+        "kms:GenerateDataKey",
+        "kms:Decrypt"
+      ],
+      "Resource": "${aws_kms_key.xosphere_kms_key[0].arn}"
+    },
+%{ endif }
     {
       "Sid": "AllowCloudwatchOperationsInXosphereNamespace",
       "Effect": "Allow",
@@ -2650,7 +2761,18 @@ resource "aws_iam_role_policy" "instance_orchestrator_budget_driver_lambda_polic
         "arn:aws:s3:::xosphere-*"
       ]
     },
-	{
+%{ if var.enhanced_security_use_cmk }
+    {
+      "Sid": "AllowKmsCmk",
+      "Effect": "Allow",
+      "Action": [
+        "kms:GenerateDataKey",
+        "kms:Decrypt"
+      ],
+      "Resource": "${aws_kms_key.xosphere_kms_key[0].arn}"
+    },
+%{ endif }
+	  {
       "Sid": "AllowSqsOperationsOnXosphereQueues",
       "Effect": "Allow",
       "Action": [
@@ -2849,7 +2971,11 @@ resource "aws_iam_role_policy" "instance_orchestrator_budget_lambda_policy" {
 	  ],
       "Resource": "*",
       "Condition": {
-        "StringLike": {"aws:ResourceTag/xosphere.io/instance-orchestrator/budget-name": "*"}
+        "StringLike": {
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/budget-name": [
+            "*"
+          ]
+        }
       }
     },
     {
@@ -2881,7 +3007,18 @@ resource "aws_iam_role_policy" "instance_orchestrator_budget_lambda_policy" {
         "arn:aws:s3:::xosphere-*"
       ]
     },
-	{
+%{ if var.enhanced_security_use_cmk }
+    {
+      "Sid": "AllowKmsCmk",
+      "Effect": "Allow",
+      "Action": [
+        "kms:GenerateDataKey",
+        "kms:Decrypt"
+      ],
+      "Resource": "${aws_kms_key.xosphere_kms_key[0].arn}"
+    },
+%{ endif }
+	  {
       "Sid": "AllowSqsOperationsOnXosphereQueues",
       "Effect": "Allow",
       "Action": [
@@ -3076,7 +3213,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_snapshot_creator_policy" {
     },
 %{ if var.enhanced_security_managed_resources }
     {
-      "Sid": "AllowEc2DeleteSnapshot",
+      "Sid": "AllowEc2DeleteSnapshotXoGroup",
       "Effect": "Allow",
       "Action": [
         "ec2:DeleteSnapshot"
@@ -3145,7 +3282,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_snapshot_creator_policy" {
         "arn:aws:logs:*:*:log-group:/aws/lambda/xosphere-*:log-stream:*"
       ]
     },
-	{
+	  {
       "Sid": "AllowSqsOperationsOnXosphereQueues",
       "Effect": "Allow",
       "Action": [
@@ -3155,6 +3292,17 @@ resource "aws_iam_role_policy" "instance_orchestrator_snapshot_creator_policy" {
       ],
       "Resource": "arn:aws:sqs:*:*:xosphere-*"
     }
+%{ if var.enhanced_security_use_cmk }
+    ,{
+      "Sid": "AllowKmsCmk",
+      "Effect": "Allow",
+      "Action": [
+        "kms:GenerateDataKey",
+        "kms:Decrypt"
+      ],
+      "Resource": "${aws_kms_key.xosphere_kms_key[0].arn}"
+    }
+%{ endif }
   ]
 }
 EOF
@@ -3593,7 +3741,18 @@ resource "aws_iam_role_policy" "instance_orchestrator_dlq_handler_policy" {
         "arn:aws:s3:::xosphere-*"
       ]
     },
-	{
+%{ if var.enhanced_security_use_cmk }
+    {
+      "Sid": "AllowKmsCmk",
+      "Effect": "Allow",
+      "Action": [
+        "kms:GenerateDataKey",
+        "kms:Decrypt"
+      ],
+      "Resource": "${aws_kms_key.xosphere_kms_key[0].arn}"
+    },
+%{ endif }
+	  {
       "Sid": "AllowSqsOperationsOnXosphereQueues",
       "Effect": "Allow",
       "Action": [
@@ -3694,8 +3853,6 @@ resource "aws_iam_role_policy" "io_bridge_lambda_policy" {
       "Sid": "AllowOperationsWithoutResourceRestrictions",
       "Effect": "Allow",
       "Action": [
-        "ec2:CreateNetworkInterface",
-        "ec2:DeleteNetworkInterface",
         "ec2:DescribeNetworkInterfaces"
        ],
       "Resource": "*"
@@ -3707,11 +3864,30 @@ resource "aws_iam_role_policy" "io_bridge_lambda_policy" {
         "logs:CreateLogGroup",
         "logs:CreateLogStream",
         "logs:PutLogEvents"
-	  ],
+      ],
       "Resource": [
         "arn:aws:logs:*:*:log-group:/aws/lambda/xosphere-*",
         "arn:aws:logs:*:*:log-group:/aws/lambda/xosphere-*:log-stream:*"
       ]
+    },
+    {
+      "Sid": "AllowLambdaVpcExecution",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateNetworkInterface",
+        "ec2:DeleteNetworkInterface",
+        "ec2:AssignPrivateIpAddresses",
+        "ec2:UnassignPrivateIpAddresses"
+      ],
+      "Resource": [
+        "*"
+      ],
+      "Condition": {
+        "ForAllValues:StringEquals": {
+          "ec2:SubnetID": [ "${join("\",\"", var.k8s_vpc_subnet_ids)}" ],
+          "ec2:SecurityGroupID": [ "${join("\",\"", var.k8s_vpc_security_group_ids)}" ]
+        }
+      }
     }
   ]
 }
@@ -3741,9 +3917,7 @@ resource "aws_iam_policy" "run_instances_managed_policy" {
       ],
       "Condition": {
         "StringLike": {
-          "aws:ResourceTag/xosphere.io/instance-orchestrator/authorized": [
-            "*"
-          ]
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/authorized": "true"
         }
       }
     },
@@ -3913,7 +4087,7 @@ resource "aws_lambda_permission" "xosphere_io_bridge_permission" {
   count = length(var.k8s_vpc_security_group_ids) > 0  && length(var.k8s_vpc_subnet_ids) > 0 ? 1 : 0
 
   action = "lambda:InvokeFunction"
-  function_name = "xosphere-instance-orchestrator-lambda"
+  function_name = aws_lambda_function.xosphere_io_bridge_lambda[0].arn
   principal = "lambda.amazonaws.com"
   source_arn = aws_lambda_function.xosphere_instance_orchestrator_lambda.arn
   statement_id = var.io_bridge_permission_name_override == null ? "AllowExecutionFromLambda" : var.io_bridge_permission_name_override
@@ -3925,6 +4099,33 @@ resource "aws_cloudwatch_log_group" "io_bridge_cloudwatch_log_group" {
   name = "/aws/lambda/xosphere-io-bridge"
   retention_in_days = var.io_bridge_lambda_log_retention
   tags = var.tags
+}
+
+resource "aws_kms_key" "xosphere_kms_key" {
+  count = var.enhanced_security_use_cmk ? 1 : 0
+  description             = "Xosphere KSM CMK key"
+  enable_key_rotation = true
+  deletion_window_in_days = 20
+  policy = jsonencode({
+    Statement = [
+      {
+        Action = "kms:*"
+        Effect = "Allow"
+        Principal = {
+          AWS = join("", ["arn:aws:iam::", data.aws_caller_identity.current.account_id, ":root"])
+        }
+        Resource = "*" # '*' here means "this kms key" https://docs.aws.amazon.com/kms/latest/developerguide/key-policy-overview.html
+        Sid      = "Delegate permission to root user"
+      },
+    ]
+    Version = "2012-10-17"
+  })
+}
+
+resource "aws_kms_alias" "xosphere_kms_key_alias" {
+  count = var.enhanced_security_use_cmk ? 1 : 0
+  name          = "alias/XosphereKmsKey"
+  target_key_id = aws_kms_key.xosphere_kms_key[0].key_id
 }
 
 // Terraformer
@@ -3995,6 +4196,17 @@ resource "aws_iam_role_policy" "instance_orchestrator_terraformer_lambda_policy"
         "arn:aws:s3:::xosphere-*"
       ]
     },
+%{ if var.enhanced_security_use_cmk }
+    {
+      "Sid": "AllowKmsCmk",
+      "Effect": "Allow",
+      "Action": [
+        "kms:GenerateDataKey",
+        "kms:Decrypt"
+      ],
+      "Resource": "${aws_kms_key.xosphere_kms_key[0].arn}"
+    },
+%{ endif }
 %{ if local.needDefineTerraformS3Permission }
     {
       "Sid": "AllowS3BucketOperationsOnTerraformBackend",
