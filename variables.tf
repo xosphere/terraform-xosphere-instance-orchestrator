@@ -337,7 +337,7 @@ variable "terraform_backend_dynamodb_table" {
 
 variable "terraformer_memory_size" {
   description = "Memory size allocated to Lambda"
-  default = 128
+  default = 256
 }
 
 variable "terraformer_ephemeral_storage" {

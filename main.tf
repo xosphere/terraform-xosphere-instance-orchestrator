@@ -9,8 +9,8 @@ locals {
   has_global_terraform_settings = var.terraform_version != "" || var.terraform_aws_provider_version != "" || var.terraform_backend_aws_region != "" || var.terraform_backend_s3_bucket != "" || var.terraform_backend_s3_key != ""
   needDefineTerraformS3Permission = var.terraform_backend_s3_bucket != "" && var.terraform_backend_aws_region != ""
   needDefineTerraformDynamoDBPermission = var.terraform_backend_dynamodb_table != ""
-  k8s_vpc_enabled = (length(var.k8s_vpc_security_group_ids) > 0)
-  k8s_vpc_enabled_string = local.k8s_vpc_enabled ? "true" : "false"
+  has_k8s_vpc_config = ((length(var.k8s_vpc_security_group_ids) > 0) && (length(var.k8s_vpc_subnet_ids) > 0))
+  has_k8s_vpc_config_string = local.has_k8s_vpc_config ? "true" : "false"
   organization_management_account_enabled = var.management_account_region != "" || var.management_aws_account_id != ""
 
   wellknown__xosphere_event_router_lambda_role = "xosphere-event-router-lambda-role"
@@ -26,11 +26,11 @@ data "aws_region" "current" {}
 
 resource "aws_s3_bucket" "instance_state_s3_logging_bucket" {
   count = var.create_logging_buckets ? 1 : 0
-  acl = "log-delivery-write"
   server_side_encryption_configuration {
     rule {
       apply_server_side_encryption_by_default {
-        sse_algorithm = "AES256"
+        sse_algorithm = var.enhanced_security_use_cmk ? "aws:kms": "AES256"
+        kms_master_key_id = var.enhanced_security_use_cmk ? aws_kms_key.xosphere_kms_key[0].arn : null
       }
     }
   }
@@ -48,14 +48,48 @@ resource "aws_s3_bucket_policy" "instance_state_s3_logging_bucket_policy" {
   "Version": "2012-10-17",
   "Statement": [
     {
+      "Sid": "S3ServerAccessLogsPolicy",
       "Action": [
-        "s3:PutObject",
-        "s3:GetObject"
+        "s3:PutObject"
+      ],
+      "Effect": "Allow",
+      "Resource": "${aws_s3_bucket.instance_state_s3_logging_bucket[0].arn}/*",
+      "Principal": {
+        "Service": "logging.s3.amazonaws.com"
+      },
+      "Condition": {
+        "ArnLike": {
+          "aws:SourceArn": "${aws_s3_bucket.instance_state_s3_bucket.arn}"
+        },
+        "StringEquals": {
+          "aws:SourceAccount": "${data.aws_caller_identity.current.account_id}"
+        }
+      }
+    },
+    {
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject"
       ],
       "Effect": "Allow",
       "Resource": "${aws_s3_bucket.instance_state_s3_logging_bucket[0].arn}/*",
       "Principal": {
         "AWS": "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+      }
+    },
+    {
+      "Sid": "RequireSecureTransport",
+      "Action": "s3:*",
+      "Effect": "Deny",
+      "Resource": [
+        "${aws_s3_bucket.instance_state_s3_logging_bucket[0].arn}",
+        "${aws_s3_bucket.instance_state_s3_logging_bucket[0].arn}/*"
+      ],
+      "Principal": "*",
+      "Condition": {
+        "Bool": {
+          "aws:SecureTransport": "false"
+        }
       }
     }
   ]
@@ -76,7 +110,6 @@ resource "aws_s3_bucket" "instance_state_s3_bucket" {
   force_destroy = true
   bucket_prefix = var.state_bucket_name_override == null ? "xosphere-instance-orchestrator" : null
   bucket = var.state_bucket_name_override == null ? null : var.state_bucket_name_override
-  acl = "private"
   server_side_encryption_configuration {
     rule {
       apply_server_side_encryption_by_default {
@@ -549,7 +582,7 @@ resource "aws_iam_role_policy" "xosphere_event_router_iam_role_policy_service_li
       "Sid": "AllowLambdaServiceLinkedRolePolicies",
       "Effect": "Allow",
       "Action": [
-		"iam:AttachRolePolicy",
+        "iam:AttachRolePolicy",
         "iam:PutRolePolicy"
       ],
       "Resource": "arn:aws:iam::*:role/aws-service-role/lambda.amazonaws.com/*"
@@ -676,7 +709,7 @@ resource "aws_lambda_function" "xosphere_terminator_lambda" {
       API_TOKEN_ARN = local.api_token_arn
       ENDPOINT_URL = var.endpoint_url
       IO_BRIDGE_NAME = "xosphere-io-bridge"
-      K8S_VPC_ENABLED = local.k8s_vpc_enabled_string
+      K8S_VPC_ENABLED = local.has_k8s_vpc_config_string
       ENABLE_ECS = var.enable_ecs
     }
   }
@@ -996,9 +1029,9 @@ resource "aws_lambda_function" "xosphere_instance_orchestrator_lambda" {
       SQS_SNAPSHOT_QUEUE = aws_sqs_queue.instance_orchestrator_snapshot_queue.id
       ENABLE_CLOUDWATCH = var.enable_cloudwatch
       ENABLE_ECS = var.enable_ecs
-      IO_BRIDGE_NAME = local.k8s_vpc_enabled ? aws_lambda_function.xosphere_io_bridge_lambda[0].id : "xosphere-io-bridge"
+      IO_BRIDGE_NAME = local.has_k8s_vpc_config ? aws_lambda_function.xosphere_io_bridge_lambda[0].id : "xosphere-io-bridge"
       ATTACHER_NAME = aws_lambda_function.instance_orchestrator_attacher_lambda.function_name
-      K8S_VPC_ENABLED = local.k8s_vpc_enabled_string
+      K8S_VPC_ENABLED = local.has_k8s_vpc_config_string
       K8S_DRAIN_TIMEOUT_IN_MINS = var.k8s_drain_timeout_in_mins
       RESERVED_INSTANCES_REGIONAL_BUFFER = var.reserved_instances_regional_buffer
       RESERVED_INSTANCES_AZ_BUFFER = var.reserved_instances_az_buffer
@@ -1019,7 +1052,7 @@ resource "aws_lambda_function" "xosphere_instance_orchestrator_lambda" {
 }
 
 resource "aws_lambda_function_event_invoke_config" "xosphere_instance_orchestrator_lambda_invoke_config" {
-  count = length(var.k8s_vpc_security_group_ids) == 0  || length(var.k8s_vpc_subnet_ids) == 0 ? 1 : 0
+  count = local.has_k8s_vpc_config ? 1 : 0
   function_name = aws_lambda_function.xosphere_instance_orchestrator_lambda.function_name
   maximum_retry_attempts = 0
   maximum_event_age_in_seconds = null
@@ -3794,11 +3827,11 @@ resource "aws_cloudwatch_log_group" "instance_orchestrator_dlq_handler_cloudwatc
 //IO Bridge
 
 resource "aws_lambda_function" "xosphere_io_bridge_lambda" {
-  count = length(var.k8s_vpc_security_group_ids) > 0  && length(var.k8s_vpc_subnet_ids) > 0 ? 1 : 0
+  count = local.has_k8s_vpc_config ? 1 : 0
 
   s3_bucket = local.s3_bucket
   s3_key = "iobridge-lambda-${local.version}.zip"
-  description = "Xosphere IO-Bridge"
+  description = "Xosphere Io-Bridge"
   environment {
     variables = {
       PORT = "31716"
@@ -3819,7 +3852,7 @@ resource "aws_lambda_function" "xosphere_io_bridge_lambda" {
 }
 
 resource "aws_iam_role" "io_bridge_lambda_role" {
-  count = length(var.k8s_vpc_security_group_ids) > 0  && length(var.k8s_vpc_subnet_ids) > 0 ? 1 : 0
+  count = local.has_k8s_vpc_config ? 1 : 0
 
   assume_role_policy = <<EOF
 {
@@ -3841,7 +3874,7 @@ EOF
 }
 
 resource "aws_iam_role_policy" "io_bridge_lambda_policy" {
-  count = length(var.k8s_vpc_security_group_ids) > 0  && length(var.k8s_vpc_subnet_ids) > 0 ? 1 : 0
+  count = local.has_k8s_vpc_config ? 1 : 0
 
   name = "xosphere-iobridge-lambda-policy"
   role = aws_iam_role.io_bridge_lambda_role[count.index].id
@@ -4084,7 +4117,7 @@ EOF
 }
 
 resource "aws_lambda_permission" "xosphere_io_bridge_permission" {
-  count = length(var.k8s_vpc_security_group_ids) > 0  && length(var.k8s_vpc_subnet_ids) > 0 ? 1 : 0
+  count = local.has_k8s_vpc_config ? 1 : 0
 
   action = "lambda:InvokeFunction"
   function_name = aws_lambda_function.xosphere_io_bridge_lambda[0].arn
@@ -4094,7 +4127,7 @@ resource "aws_lambda_permission" "xosphere_io_bridge_permission" {
 }
 
 resource "aws_cloudwatch_log_group" "io_bridge_cloudwatch_log_group" {
-  count = length(var.k8s_vpc_security_group_ids) > 0  && length(var.k8s_vpc_subnet_ids) > 0 ? 1 : 0
+  count = local.has_k8s_vpc_config ? 1 : 0
 
   name = "/aws/lambda/xosphere-io-bridge"
   retention_in_days = var.io_bridge_lambda_log_retention
@@ -4117,6 +4150,15 @@ resource "aws_kms_key" "xosphere_kms_key" {
         Resource = "*" # '*' here means "this kms key" https://docs.aws.amazon.com/kms/latest/developerguide/key-policy-overview.html
         Sid      = "Delegate permission to root user"
       },
+      {
+        Action = "kms:*"
+        Effect = "Allow"
+        Principal = {
+          Service = "logging.s3.amazonaws.com"
+        }
+        Resource = "*" # '*' here means "this kms key" https://docs.aws.amazon.com/kms/latest/developerguide/key-policy-overview.html
+        Sid      = "S3 Access logging"
+      }
     ]
     Version = "2012-10-17"
   })
