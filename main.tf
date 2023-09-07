@@ -400,7 +400,7 @@ resource "aws_lambda_permission" "xosphere_event_router_lambda_permission" {
 
 resource "aws_lambda_function" "xosphere_event_router_enhancer_lambda" {
   s3_bucket = local.s3_bucket
-  s3_key = "event-router-enhancer-lambda-${local.version}.zip"
+  s3_key = "event-router-lambda-${local.version}.zip"
   description = "Xosphere Event Router Enhancer"
   environment {
     variables = {
