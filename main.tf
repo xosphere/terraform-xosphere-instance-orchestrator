@@ -1132,6 +1132,7 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
         "ec2:DescribeSubnets",
         "ec2:DescribeTags",
         "ec2:DescribeVolumes",
+        "ec2:GetSpotPlacementScores",
         "ecs:ListClusters",
         "eks:DescribeNodegroup",
         "elasticloadbalancing:DescribeInstanceHealth",
