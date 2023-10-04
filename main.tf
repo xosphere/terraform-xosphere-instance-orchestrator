@@ -3761,6 +3761,21 @@ resource "aws_iam_role_policy" "instance_orchestrator_dlq_handler_policy" {
   "Version": "2012-10-17",
   "Statement": [
     {
+      "Sid": "AllowEc2CreateTagsOnXogroups",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+	  ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": [
+            "*"
+          ]
+        }
+      }
+    },
+    {
       "Sid": "AllowLogOperationsOnXosphereLogGroups",
       "Effect": "Allow",
       "Action": [
