@@ -44,7 +44,7 @@ variable "lambda_memory_size" {
 
 variable "lambda_timeout" {
   description = "Lambda function execution timeout"
-  default = 120
+  default = 115
 }
 
 variable "lambda_log_retention" {
