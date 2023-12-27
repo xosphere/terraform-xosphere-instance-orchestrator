@@ -1,5 +1,5 @@
 locals {
-  version = "0.25.3"
+  version = "0.26.0"
   api_token_arn = (var.secretsmanager_arn_override == null) ? format("arn:aws:secretsmanager:%s:%s:secret:customer/%s", local.xo_account_region, var.xo_account_id, var.customer_id) : var.secretsmanager_arn_override
   api_token_pattern = (var.secretsmanager_arn_override == null) ? format("arn:aws:secretsmanager:%s:%s:secret:customer/%s-??????", local.xo_account_region, var.xo_account_id, var.customer_id) : var.secretsmanager_arn_override
   regions = join(",", var.regions_enabled)
@@ -713,6 +713,7 @@ resource "aws_lambda_function" "xosphere_terminator_lambda" {
       IO_BRIDGE_NAME = "xosphere-io-bridge"
       K8S_VPC_ENABLED = local.has_k8s_vpc_config_string
       ENABLE_ECS = var.enable_ecs
+      ATTACHER_NAME = aws_lambda_function.instance_orchestrator_attacher_lambda.function_name
     }
   }
   function_name = "xosphere-terminator-lambda"
@@ -740,7 +741,7 @@ resource "aws_iam_role" "xosphere_terminator_role" {
   ]
 }
 EOF
-  managed_policy_arns = [ ]
+  managed_policy_arns = [ aws_iam_policy.run_instances_managed_policy.arn, aws_iam_policy.create_fleet_managed_policy.arn ]  
   name = "xosphere-terminator-lambda-role"
   path = "/"
   tags = var.tags
@@ -758,16 +759,30 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
       "Effect": "Allow",
       "Action": [
         "autoscaling:DescribeAutoScalingGroups",
+        "autoscaling:DescribeAutoScalingInstances",
+        "autoscaling:DescribeLaunchConfigurations",
         "autoscaling:DescribeNotificationConfigurations",
         "autoscaling:DescribeScalingActivities",
+        "ec2:DescribeAccountAttributes",
         "ec2:DescribeAddresses",
         "ec2:DescribeAvailabilityZones",
+        "ec2:DescribeImages",
         "ec2:DescribeInstanceAttribute",
         "ec2:DescribeInstanceCreditSpecifications",
         "ec2:DescribeInstances",
+        "ec2:DescribeLaunchTemplateVersions",
+        "ec2:DescribeSpotPriceHistory",
+        "ec2:DescribeSubnets",
         "ec2:DescribeVolumes",
+        "ec2:GetSpotPlacementScores",
         "ecs:ListClusters",
-        "ec2:ModifyInstanceAttribute"
+        "ec2:ModifyInstanceAttribute",
+        "elasticloadbalancing:DescribeTargetGroups",
+        "elasticloadbalancing:DescribeTargetHealth",
+        "elasticloadbalancing:DeregisterTargets",
+        "elasticloadbalancing:DescribeLoadBalancers",
+        "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
+        "elasticloadbalancing:DescribeInstanceHealth"
       ],
       "Resource": "*"
     },
@@ -775,8 +790,13 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
       "Sid": "AllowAutoScalingOperationsOnEnabledAsgs",
       "Effect": "Allow",
       "Action": [
+        "autoscaling:CreateOrUpdateTags",
+        "autoscaling:DeleteTags",
         "autoscaling:DetachInstances",
-        "autoscaling:EnterStandby"
+        "autoscaling:EnterStandby",
+        "autoscaling:ResumeProcesses",
+        "autoscaling:SuspendProcesses",
+        "autoscaling:UpdateAutoScalingGroup"
       ],
       "Resource": "arn:*:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/*",
       "Condition": {
@@ -847,6 +867,19 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
             ]
         }
       }
+    },
+    {
+      "Action": [
+        "iam:PassRole"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": "ec2.amazonaws.com"
+        }
+      },
+      "Effect": "Allow",
+      "Resource": "*",
+      "Sid": "AllowPassRoleToEc2Instances"
     },
     {
       "Sid": "AllowLambdaOperationsOnXosphereFunctions",
@@ -1053,6 +1086,7 @@ resource "aws_lambda_function" "xosphere_instance_orchestrator_lambda" {
   architectures = [ "arm64" ]
   timeout = var.lambda_timeout
   tags = var.tags
+  reserved_concurrent_executions = 1
 }
 
 resource "aws_lambda_function_event_invoke_config" "xosphere_instance_orchestrator_lambda_invoke_config" {
@@ -1084,7 +1118,7 @@ resource "aws_iam_role" "xosphere_instance_orchestrator_role" {
   ]
 }
 EOF
-  managed_policy_arns = [ aws_iam_policy.run_instances_managed_policy.arn ]
+  managed_policy_arns = [ aws_iam_policy.run_instances_managed_policy.arn, aws_iam_policy.create_fleet_managed_policy.arn ]
   name = "xosphere-instance-orchestrator-lambda-role"
   path = "/"
   tags = var.tags
@@ -4116,6 +4150,195 @@ resource "aws_iam_policy" "run_instances_managed_policy" {
       "Condition": {
         "StringLike": {
           "ec2:CreateAction": "RunInstances",
+          "aws:RequestTag/xosphere.io/instance-orchestrator/xogroup-name": [
+            "*"
+          ]
+        }
+      }
+    },{
+      "Sid": "AllowUseKmsOnAuthorized",
+      "Effect": "Allow",
+      "Action": [
+        "kms:Encrypt",
+        "kms:Decrypt",
+        "kms:ReEncrypt*",
+        "kms:GenerateDataKey*",
+        "kms:DescribeKey",
+        "kms:CreateGrant"
+      ],
+      "Resource": [
+        "arn:*:kms:*:*:key/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/authorized": "true"
+        }
+      }
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_policy" "create_fleet_managed_policy" {
+  name        = "xosphere-instance-orchestrator-CreateFleet-policy"
+  description = "Policy to allow CreateFleet and associated API calls"
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+%{ if var.enhanced_security_tag_restrictions }
+    {
+      "Sid": "AllowEc2CreateFleet",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateFleet"
+      ],
+      "NotResource": [
+        "arn:*:ec2:*:*:instance/*",
+        "arn:*:ec2:*:*:network-interface/*",
+        "arn:*:ec2:*:*:volume/*",
+        "arn:*:elastic-inference:*:*:elastic-inference-accelerator/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/authorized": "true"
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2CreateFleetOnXoGroup",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateFleet"
+      ],
+      "NotResource": [
+        "arn:*:ec2:*:*:instance/*",
+        "arn:*:ec2:*:*:network-interface/*",
+        "arn:*:ec2:*:*:volume/*",
+        "arn:*:elastic-inference:*:*:elastic-inference-accelerator/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": [
+            "*"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2CreateFleetOnEnabled",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateFleet"
+      ],
+      "NotResource": [
+        "arn:*:ec2:*:*:instance/*",
+        "arn:*:ec2:*:*:network-interface/*",
+        "arn:*:ec2:*:*:volume/*",
+        "arn:*:elastic-inference:*:*:elastic-inference-accelerator/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/enabled": [
+            "*"
+          ]
+        }
+      }
+    },
+%{ else }
+    {
+      "Sid": "AllowEc2CreateFleet",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateFleet"
+      ],
+      "Resource": "*"
+    },
+%{ endif }
+    {
+      "Sid": "AllowEc2CreateFleetElasticInference",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateFleet"
+      ],
+      "Resource": [
+        "arn:*:elastic-inference:*:*:elastic-inference-accelerator/*"
+      ]
+    },
+    {
+      "Sid": "AllowEc2CreateFleetOnEnabledInstance",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateFleet"
+      ],
+      "Resource": [
+        "arn:*:ec2:*:*:instance/*",
+        "arn:*:ec2:*:*:network-interface/*",
+        "arn:*:ec2:*:*:volume/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "aws:RequestTag/xosphere.io/instance-orchestrator/enabled": [
+            "*"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2CreateFleetXoGroupInstance",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateFleet"
+      ],
+      "Resource": [
+        "arn:*:ec2:*:*:instance/*",
+        "arn:*:ec2:*:*:network-interface/*",
+        "arn:*:ec2:*:*:volume/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "aws:RequestTag/xosphere.io/instance-orchestrator/xogroup-name": [
+            "*"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "AllowCreateTagsOnCreateFleetOnEnabled",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+      ],
+      "Resource": [
+        "arn:*:ec2:*:*:instance/*",
+        "arn:aws:ec2:*:*:volume/*",
+        "arn:*:ec2:*:*:network-interface/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "ec2:CreateAction": "CreateFleet",
+          "aws:RequestTag/xosphere.io/instance-orchestrator/enabled": [
+            "*"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "AllowCreateTagsOnCreateFleetXoGroup",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+      ],
+      "Resource": [
+        "arn:*:ec2:*:*:instance/*",
+        "arn:aws:ec2:*:*:volume/*",
+        "arn:*:ec2:*:*:network-interface/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "ec2:CreateAction": "CreateFleet",
           "aws:RequestTag/xosphere.io/instance-orchestrator/xogroup-name": [
             "*"
           ]
