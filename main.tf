@@ -1056,7 +1056,6 @@ resource "aws_lambda_function" "xosphere_instance_orchestrator_lambda" {
 }
 
 resource "aws_lambda_function_event_invoke_config" "xosphere_instance_orchestrator_lambda_invoke_config" {
-  count = local.has_k8s_vpc_config ? 1 : 0
   function_name = aws_lambda_function.xosphere_instance_orchestrator_lambda.function_name
   maximum_retry_attempts = 0
   maximum_event_age_in_seconds = null
