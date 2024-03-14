@@ -1,6 +1,12 @@
 # Xosphere Instance Orchestration configuration
 variable "customer_id" {}
 
+variable "ec2_ami_arns" {
+  description = "EC2 ami arns to allow in run instance policies, to be used for public or other untaggable AMIs"
+  type = string
+  default = ""
+}
+
 variable "tags" {
   description = "Map of tag keys and values to be applied to objects created by this module (where applicable)"
   type = map
@@ -429,44 +435,6 @@ variable "compute_savings_plan_buffer" {
   default = ""
   description = "Compute Savings Plan buffer (Overrides Org level setting)"
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ## for internal use only
 variable "logging_bucket_name_override" {
