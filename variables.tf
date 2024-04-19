@@ -430,7 +430,11 @@ variable "compute_savings_plan_buffer" {
   description = "Compute Savings Plan buffer (Overrides Org level setting)"
 }
 
-
+variable "ignore_lb_health_check" {
+  description = "Ignore load balancer health check during replacement. Default as false."
+  type = bool
+  default = false
+}
 
 
 

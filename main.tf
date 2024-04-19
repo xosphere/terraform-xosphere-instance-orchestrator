@@ -1,5 +1,5 @@
 locals {
-  version = "0.26.0"
+  version = "0.26.1"
   api_token_arn = (var.secretsmanager_arn_override == null) ? format("arn:aws:secretsmanager:%s:%s:secret:customer/%s", local.xo_account_region, var.xo_account_id, var.customer_id) : var.secretsmanager_arn_override
   api_token_pattern = (var.secretsmanager_arn_override == null) ? format("arn:aws:secretsmanager:%s:%s:secret:customer/%s-??????", local.xo_account_region, var.xo_account_id, var.customer_id) : var.secretsmanager_arn_override
   regions = join(",", var.regions_enabled)
@@ -714,6 +714,7 @@ resource "aws_lambda_function" "xosphere_terminator_lambda" {
       K8S_VPC_ENABLED = local.has_k8s_vpc_config_string
       ENABLE_ECS = var.enable_ecs
       ATTACHER_NAME = aws_lambda_function.instance_orchestrator_attacher_lambda.function_name
+      IGNORE_LB_HEALTH_CHECK = var.ignore_lb_health_check      
     }
   }
   function_name = "xosphere-terminator-lambda"
@@ -796,6 +797,7 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
         "autoscaling:EnterStandby",
         "autoscaling:ResumeProcesses",
         "autoscaling:SuspendProcesses",
+        "autoscaling:TerminateInstanceInAutoScalingGroup",
         "autoscaling:UpdateAutoScalingGroup"
       ],
       "Resource": "arn:*:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/*",
@@ -914,7 +916,9 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
       ],
       "Resource": [
         "arn:aws:s3:::xosphere-*/*",
-        "arn:aws:s3:::xosphere-*"
+        "arn:aws:s3:::xosphere-*",
+        "${aws_s3_bucket.instance_state_s3_bucket.arn}",
+        "${aws_s3_bucket.instance_state_s3_bucket.arn}/*"
       ]
     },
 %{ if var.enhanced_security_use_cmk }
@@ -1076,6 +1080,7 @@ resource "aws_lambda_function" "xosphere_instance_orchestrator_lambda" {
       ORGANIZATION_DATA_S3_BUCKET = local.organization_management_account_enabled ? var.management_account_data_bucket : null
       ORGANIZATION_REGION = local.organization_management_account_enabled ? var.management_account_region : null
       ENABLE_CODEDEPLOY = var.enable_code_deploy_integration
+      IGNORE_LB_HEALTH_CHECK = var.ignore_lb_health_check
     }
   }
   function_name = "xosphere-instance-orchestrator-lambda"
@@ -1330,7 +1335,9 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
       ],
       "Resource": [
         "arn:aws:s3:::xosphere-*/*",
-        "arn:aws:s3:::xosphere-*"
+        "arn:aws:s3:::xosphere-*",
+        "${aws_s3_bucket.instance_state_s3_bucket.arn}",
+        "${aws_s3_bucket.instance_state_s3_bucket.arn}/*"
       ]
     },
 %{ if local.organization_management_account_enabled }
@@ -2091,7 +2098,9 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
       ],
       "Resource": [
         "arn:aws:s3:::xosphere-*/*",
-        "arn:aws:s3:::xosphere-*"
+        "arn:aws:s3:::xosphere-*",
+        "${aws_s3_bucket.instance_state_s3_bucket.arn}",
+        "${aws_s3_bucket.instance_state_s3_bucket.arn}/*"
       ]
     },
 %{ if var.enhanced_security_use_cmk }
@@ -2377,7 +2386,9 @@ resource "aws_iam_role_policy" "instance_orchestrator_scheduler_lambda_policy" {
       ],
       "Resource": [
         "arn:aws:s3:::xosphere-*/*",
-        "arn:aws:s3:::xosphere-*"
+        "arn:aws:s3:::xosphere-*",
+        "${aws_s3_bucket.instance_state_s3_bucket.arn}",
+        "${aws_s3_bucket.instance_state_s3_bucket.arn}/*"
       ]
     },
 %{ if var.enhanced_security_use_cmk }
@@ -2593,7 +2604,9 @@ resource "aws_iam_role_policy" "instance_orchestrator_xogroup_enabler_lambda_pol
       ],
       "Resource": [
         "arn:aws:s3:::xosphere-*/*",
-        "arn:aws:s3:::xosphere-*"
+        "arn:aws:s3:::xosphere-*",
+        "${aws_s3_bucket.instance_state_s3_bucket.arn}",
+        "${aws_s3_bucket.instance_state_s3_bucket.arn}/*"
       ]
     },
 %{ if var.enhanced_security_use_cmk }
@@ -2834,7 +2847,9 @@ resource "aws_iam_role_policy" "instance_orchestrator_budget_driver_lambda_polic
       ],
       "Resource": [
         "arn:aws:s3:::xosphere-*/*",
-        "arn:aws:s3:::xosphere-*"
+        "arn:aws:s3:::xosphere-*",
+        "${aws_s3_bucket.instance_state_s3_bucket.arn}",
+        "${aws_s3_bucket.instance_state_s3_bucket.arn}/*"
       ]
     },
 %{ if var.enhanced_security_use_cmk }
@@ -3081,7 +3096,9 @@ resource "aws_iam_role_policy" "instance_orchestrator_budget_lambda_policy" {
       ],
       "Resource": [
         "arn:aws:s3:::xosphere-*/*",
-        "arn:aws:s3:::xosphere-*"
+        "arn:aws:s3:::xosphere-*",
+        "${aws_s3_bucket.instance_state_s3_bucket.arn}",
+        "${aws_s3_bucket.instance_state_s3_bucket.arn}/*"
       ]
     },
 %{ if var.enhanced_security_use_cmk }
@@ -3834,7 +3851,9 @@ resource "aws_iam_role_policy" "instance_orchestrator_dlq_handler_policy" {
       ],
       "Resource": [
         "arn:aws:s3:::xosphere-*/*",
-        "arn:aws:s3:::xosphere-*"
+        "arn:aws:s3:::xosphere-*",
+        "${aws_s3_bucket.instance_state_s3_bucket.arn}",
+        "${aws_s3_bucket.instance_state_s3_bucket.arn}/*"
       ]
     },
 %{ if var.enhanced_security_use_cmk }
@@ -4188,66 +4207,6 @@ resource "aws_iam_policy" "create_fleet_managed_policy" {
 {
   "Version": "2012-10-17",
   "Statement": [
-%{ if var.enhanced_security_tag_restrictions }
-    {
-      "Sid": "AllowEc2CreateFleet",
-      "Effect": "Allow",
-      "Action": [
-        "ec2:CreateFleet"
-      ],
-      "NotResource": [
-        "arn:*:ec2:*:*:instance/*",
-        "arn:*:ec2:*:*:network-interface/*",
-        "arn:*:ec2:*:*:volume/*",
-        "arn:*:elastic-inference:*:*:elastic-inference-accelerator/*"
-      ],
-      "Condition": {
-        "StringLike": {
-          "aws:ResourceTag/xosphere.io/instance-orchestrator/authorized": "true"
-        }
-      }
-    },
-    {
-      "Sid": "AllowEc2CreateFleetOnXoGroup",
-      "Effect": "Allow",
-      "Action": [
-        "ec2:CreateFleet"
-      ],
-      "NotResource": [
-        "arn:*:ec2:*:*:instance/*",
-        "arn:*:ec2:*:*:network-interface/*",
-        "arn:*:ec2:*:*:volume/*",
-        "arn:*:elastic-inference:*:*:elastic-inference-accelerator/*"
-      ],
-      "Condition": {
-        "StringLike": {
-          "aws:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": [
-            "*"
-          ]
-        }
-      }
-    },
-    {
-      "Sid": "AllowEc2CreateFleetOnEnabled",
-      "Effect": "Allow",
-      "Action": [
-        "ec2:CreateFleet"
-      ],
-      "NotResource": [
-        "arn:*:ec2:*:*:instance/*",
-        "arn:*:ec2:*:*:network-interface/*",
-        "arn:*:ec2:*:*:volume/*",
-        "arn:*:elastic-inference:*:*:elastic-inference-accelerator/*"
-      ],
-      "Condition": {
-        "StringLike": {
-          "aws:ResourceTag/xosphere.io/instance-orchestrator/enabled": [
-            "*"
-          ]
-        }
-      }
-    },
-%{ else }
     {
       "Sid": "AllowEc2CreateFleet",
       "Effect": "Allow",
@@ -4256,7 +4215,6 @@ resource "aws_iam_policy" "create_fleet_managed_policy" {
       ],
       "Resource": "*"
     },
-%{ endif }
     {
       "Sid": "AllowEc2CreateFleetElasticInference",
       "Effect": "Allow",
@@ -4489,7 +4447,9 @@ resource "aws_iam_role_policy" "instance_orchestrator_terraformer_lambda_policy"
       ],
       "Resource": [
         "arn:aws:s3:::xosphere-*/*",
-        "arn:aws:s3:::xosphere-*"
+        "arn:aws:s3:::xosphere-*",
+        "${aws_s3_bucket.instance_state_s3_bucket.arn}",
+        "${aws_s3_bucket.instance_state_s3_bucket.arn}/*"
       ]
     },
 %{ if var.enhanced_security_use_cmk }
