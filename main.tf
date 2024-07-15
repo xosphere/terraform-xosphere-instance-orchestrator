@@ -1,5 +1,5 @@
 locals {
-  version = "0.26.2"
+  version = "0.27.0"
   api_token_arn = (var.secretsmanager_arn_override == null) ? format("arn:aws:secretsmanager:%s:%s:secret:customer/%s", local.xo_account_region, var.xo_account_id, var.customer_id) : var.secretsmanager_arn_override
   api_token_pattern = (var.secretsmanager_arn_override == null) ? format("arn:aws:secretsmanager:%s:%s:secret:customer/%s-??????", local.xo_account_region, var.xo_account_id, var.customer_id) : var.secretsmanager_arn_override
   regions = join(",", var.regions_enabled)
@@ -17,8 +17,8 @@ locals {
   wellknown__xosphere_organization_instance_state_event_collector_queue_name = "xosphere-instance-orchestrator-org-inst-state-event-collector-launch"
   wellknown__xosphere_organization_inventory_updates_submitter_role = "xosphere-instance-orchestrator-org-inv-upd-sub-assume-role"
 
-  statemap__group_inspector = "pending,terminated"
-  statemap__org_inventory_and_group_inspector = "pending,terminated,stopped"
+  statemap__group_inspector = "pending,terminated,running,stopping"
+  statemap__org_inventory_and_group_inspector = "pending,terminated,running,stopping,stopped"
 }
 
 data "aws_caller_identity" "current" {}
@@ -2351,6 +2351,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_scheduler_lambda_policy" {
       "Sid": "AllowEc2OperationsOnSchedules",
       "Effect": "Allow",
       "Action": [
+        "ec2:CreateTags",
         "ec2:DeleteTags",
         "ec2:StartInstances",
         "ec2:StopInstances"
@@ -3442,6 +3443,7 @@ resource "aws_lambda_function" "instance_orchestrator_group_inspector_lambda" {
       API_TOKEN_ARN = local.api_token_arn
       ENDPOINT_URL = var.endpoint_url
       GROUP_INSPECTOR_QUEUE_URL = aws_sqs_queue.instance_orchestrator_group_inspector_queue.id
+      SCHEDULER_QUEUE_URL = aws_sqs_queue.instance_orchestrator_schedule_queue.id
     }
   }
   function_name = "xosphere-instance-orchestrator-group-inspector"
@@ -3547,7 +3549,10 @@ resource "aws_iam_role_policy" "instance_orchestrator_group_inspector_policy" {
             "sqs:ReceiveMessage",
             "sqs:SendMessage"
         ],
-        "Resource": "${aws_sqs_queue.instance_orchestrator_group_inspector_queue.arn}"
+        "Resource": [
+            "${aws_sqs_queue.instance_orchestrator_group_inspector_queue.arn}",
+            "${aws_sqs_queue.instance_orchestrator_schedule_queue.arn}"
+        ]
     }
   ]
 }
