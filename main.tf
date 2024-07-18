@@ -1,5 +1,5 @@
 locals {
-  version = "0.27.0"
+  version = "0.27.1"
   api_token_arn = (var.secretsmanager_arn_override == null) ? format("arn:aws:secretsmanager:%s:%s:secret:customer/%s", local.xo_account_region, var.xo_account_id, var.customer_id) : var.secretsmanager_arn_override
   api_token_pattern = (var.secretsmanager_arn_override == null) ? format("arn:aws:secretsmanager:%s:%s:secret:customer/%s-??????", local.xo_account_region, var.xo_account_id, var.customer_id) : var.secretsmanager_arn_override
   regions = join(",", var.regions_enabled)
@@ -4198,6 +4198,16 @@ resource "aws_iam_policy" "run_instances_managed_policy" {
           "aws:ResourceTag/xosphere.io/instance-orchestrator/authorized": "true"
         }
       }
+    },{
+      "Sid": "AllowSsmReadPublicParameters",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:GetParameter",
+        "ssm:GetParameters"
+      ],
+      "Resource": [
+        "arn:*:ssm:*::parameter/aws/*"
+      ]
     }
   ]
 }
@@ -4326,6 +4336,16 @@ resource "aws_iam_policy" "create_fleet_managed_policy" {
           "aws:ResourceTag/xosphere.io/instance-orchestrator/authorized": "true"
         }
       }
+    },{
+      "Sid": "AllowSsmReadPublicParameters",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:GetParameter",
+        "ssm:GetParameters"
+      ],
+      "Resource": [
+        "arn:*:ssm:*::parameter/aws/*"
+      ]
     }
   ]
 }
