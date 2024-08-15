@@ -1,5 +1,5 @@
 locals {
-  version = "0.27.1"
+  version = "0.27.2"
   api_token_arn = (var.secretsmanager_arn_override == null) ? format("arn:aws:secretsmanager:%s:%s:secret:customer/%s", local.xo_account_region, var.xo_account_id, var.customer_id) : var.secretsmanager_arn_override
   api_token_pattern = (var.secretsmanager_arn_override == null) ? format("arn:aws:secretsmanager:%s:%s:secret:customer/%s-??????", local.xo_account_region, var.xo_account_id, var.customer_id) : var.secretsmanager_arn_override
   regions = join(",", var.regions_enabled)
@@ -712,6 +712,7 @@ resource "aws_lambda_function" "xosphere_terminator_lambda" {
       ENDPOINT_URL = var.endpoint_url
       IO_BRIDGE_NAME = "xosphere-io-bridge"
       K8S_VPC_ENABLED = local.has_k8s_vpc_config_string
+      K8S_POD_EVICTION_GRACE_PERIOD = var.k8s_pod_eviction_grace_period
       ENABLE_ECS = var.enable_ecs
       ATTACHER_NAME = aws_lambda_function.instance_orchestrator_attacher_lambda.function_name
       IGNORE_LB_HEALTH_CHECK = var.ignore_lb_health_check      
@@ -1073,6 +1074,7 @@ resource "aws_lambda_function" "xosphere_instance_orchestrator_lambda" {
       ATTACHER_NAME = aws_lambda_function.instance_orchestrator_attacher_lambda.function_name
       K8S_VPC_ENABLED = local.has_k8s_vpc_config_string
       K8S_DRAIN_TIMEOUT_IN_MINS = var.k8s_drain_timeout_in_mins
+      K8S_POD_EVICTION_GRACE_PERIOD = var.k8s_pod_eviction_grace_period
       RESERVED_INSTANCES_REGIONAL_BUFFER = var.reserved_instances_regional_buffer
       RESERVED_INSTANCES_AZ_BUFFER = var.reserved_instances_az_buffer
       EC2_INSTANCE_SAVINGS_PLAN_BUFFER = var.ec2_instance_savings_plan_buffer
@@ -3922,6 +3924,7 @@ resource "aws_lambda_function" "xosphere_io_bridge_lambda" {
   environment {
     variables = {
       PORT = "31716"
+
     }
   }
   function_name = "xosphere-io-bridge"

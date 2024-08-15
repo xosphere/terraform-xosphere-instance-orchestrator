@@ -204,7 +204,7 @@ variable "io_bridge_memory_size" {
 
 variable "io_bridge_lambda_timeout" {
   description = "Lambda function execution timeout"
-  default = 180
+  default = 900
 }
 
 variable "io_bridge_lambda_log_retention" {
@@ -277,6 +277,11 @@ variable "monthly_budget_grace_period_in_seconds" {
 variable "k8s_drain_timeout_in_mins" {
   description = "Timeout in minutes for K8s node drain request"
   default = 15
+}
+
+variable "k8s_pod_eviction_grace_period" {
+  description = "Grace period (in seconds) for pods to complete eviction before being terminated when draining. A value of -1 (the default) means use the cconfiguration of the pod (which defaults to 30 seconds, unless overridden)."
+  default = -1
 }
 
 variable "sns_arn_resource_pattern" {
