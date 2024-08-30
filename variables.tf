@@ -528,6 +528,11 @@ variable "scheduler_lambda_permission_name_override" {
   default = null
 }
 
+variable "scheduler_cwe_lambda_permission_name_override" {
+  description = "An explicit name to use"
+  default = null
+}
+
 variable "snapshot_creator_lambda_permission_name_override" {
   description = "An explicit name to use"
   default = null
@@ -569,6 +574,16 @@ variable "instance_orchestrator_attacher_lambda_permission_name_override" {
 }
 
 variable "secretsmanager_arn_override" {
+  description = "An explicit name to use"
+  default = null
+}
+
+variable "xogroup_enabler_lambda_permission_name_override" {
+  description = "An explicit name to use"
+  default = null
+}
+
+variable "xosphere_terminator_sqs_lambda_permission_name_override" {
   description = "An explicit name to use"
   default = null
 }

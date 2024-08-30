@@ -1054,6 +1054,22 @@ resource "aws_cloudwatch_log_group" "xosphere_terminator_cloudwatch_log_group" {
   tags = var.tags
 }
 
+resource "aws_lambda_event_source_mapping" "xosphere_terminator_event_source_mapping" {
+  batch_size = 1
+  enabled = true
+  event_source_arn = aws_sqs_queue.xosphere_terminator_queue.arn
+  function_name = aws_lambda_function.xosphere_terminator_lambda.arn
+  depends_on = [ aws_iam_role.xosphere_terminator_role ]
+}
+
+resource "aws_lambda_permission" "xosphere_terminator_sqs_lambda_permission" {
+  action = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.xosphere_terminator_lambda.arn
+  principal = "sqs.amazonaws.com"
+  source_arn = aws_sqs_queue.xosphere_terminator_queue.arn
+  statement_id = var.xosphere_terminator_sqs_lambda_permission_name_override == null ? "AllowExecutionFromSqs" : var.xosphere_terminator_sqs_lambda_permission_name_override
+}
+
 //instance-orchestrator
 resource "aws_lambda_function" "xosphere_instance_orchestrator_lambda" {
   s3_bucket = local.s3_bucket
@@ -2524,6 +2540,22 @@ resource "aws_cloudwatch_log_group" "instance_orchestrator_scheduler_cloudwatch_
   tags = var.tags
 }
 
+resource "aws_lambda_event_source_mapping" "instance_orchestrator_scheduler_cloudwatch_event_sqs_trigger" {
+  batch_size = 1
+  enabled = true
+  event_source_arn = aws_sqs_queue.instance_orchestrator_scheduler_cloudwatch_event_queue.arn
+  function_name = aws_lambda_function.instance_orchestrator_scheduler_cloudwatch_event_lambda.arn
+  depends_on = [ aws_iam_role.instance_orchestrator_scheduler_lambda_role ]
+}
+
+resource "aws_lambda_permission" "instance_orchestrator_scheduler_cloudwatch_event_lambda_permission" {
+  action = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.instance_orchestrator_scheduler_cloudwatch_event_lambda.arn
+  principal = "sqs.amazonaws.com"
+  source_arn = aws_sqs_queue.instance_orchestrator_scheduler_cloudwatch_event_queue.arn
+  statement_id = var.scheduler_cwe_lambda_permission_name_override == null ? "AllowExecutionFromSqs" : var.scheduler_cwe_lambda_permission_name_override
+}
+
 // Xogroup enabler
 
 resource "aws_lambda_function" "instance_orchestrator_xogroup_enabler_lambda" {
@@ -2674,6 +2706,22 @@ resource "aws_cloudwatch_log_group" "instance_orchestrator_xogroup_enabler_cloud
   name = "/aws/lambda/xosphere-instance-orchestrator-xogroup-enabler"
   retention_in_days = var.io_xogroup_enabler_lambda_log_retention
   tags = var.tags
+}
+
+resource "aws_lambda_event_source_mapping" "instance_orchestrator_xogroup_enabler_event_source_mapping" {
+  batch_size = 1
+  enabled = true
+  event_source_arn = aws_sqs_queue.instance_orchestrator_xogroup_enabler_queue.arn
+  function_name = aws_lambda_function.instance_orchestrator_xogroup_enabler_lambda.arn
+  depends_on = [ aws_iam_role.instance_orchestrator_xogroup_enabler_lambda_role ]
+}
+
+resource "aws_lambda_permission" "instance_orchestrator_xogroup_enabler_sqs_lambda_permission" {
+  action = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.instance_orchestrator_xogroup_enabler_lambda.arn
+  principal = "sqs.amazonaws.com"
+  source_arn = aws_sqs_queue.instance_orchestrator_xogroup_enabler_queue.arn
+  statement_id = var.xogroup_enabler_lambda_permission_name_override == null ? "AllowExecutionFromSqs" : var.xogroup_enabler_lambda_permission_name_override
 }
 
 //budget Driver
@@ -3580,6 +3628,15 @@ resource "aws_cloudwatch_event_target" "xosphere_instance_orchestrator_group_ins
   rule = aws_cloudwatch_event_rule.instance_orchestrator_group_inspector_schedule_cloudwatch_event_rule.name
   target_id = "xosphere-io-group-inspector-schedule"
 }
+
+resource "aws_lambda_event_source_mapping" "instance_orchestrator_group_inspector_event_source_mapping" {
+  batch_size = 1
+  enabled = true
+  event_source_arn = aws_sqs_queue.instance_orchestrator_group_inspector_queue.arn
+  function_name = aws_lambda_function.instance_orchestrator_group_inspector_lambda.arn
+  depends_on = [ aws_iam_role.instance_orchestrator_group_inspector_role ]
+}
+
 
 //AMI cleaner
 
