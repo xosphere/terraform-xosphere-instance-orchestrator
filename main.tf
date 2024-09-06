@@ -789,7 +789,7 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
       "Resource": "*"
     },
     {
-      "Sid": "AllowAutoScalingOperationsOnEnabledAsgs",
+      "Sid": "AllowAutoScalingOperationsOnEnabledAsgsSlashes",
       "Effect": "Allow",
       "Action": [
         "autoscaling:CreateOrUpdateTags",
@@ -807,7 +807,25 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
       }
     },
     {
-      "Sid": "AllowEc2OperationsOnEnabledAsgs",
+      "Sid": "AllowAutoScalingOperationsOnEnabledAsgsColons",
+      "Effect": "Allow",
+      "Action": [
+        "autoscaling:CreateOrUpdateTags",
+        "autoscaling:DeleteTags",
+        "autoscaling:DetachInstances",
+        "autoscaling:EnterStandby",
+        "autoscaling:ResumeProcesses",
+        "autoscaling:SuspendProcesses",
+        "autoscaling:TerminateInstanceInAutoScalingGroup",
+        "autoscaling:UpdateAutoScalingGroup"
+      ],
+      "Resource": "arn:*:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/*",
+      "Condition": {
+        "StringEquals": {"autoscaling:ResourceTag/xosphere:instance-orchestrator:enabled": "true"}
+      }
+    },
+    {
+      "Sid": "AllowEc2OperationsOnEnabledAsgsSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:CreateTags",
@@ -816,11 +834,28 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
 	  ],
       "Resource": "arn:*:ec2:*:*:instance/*",
       "Condition": {
-        "StringLike": {"aws:ResourceTag/xosphere.io/instance-orchestrator/enabled": ["*"]}
+        "StringLike": {
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/enabled": ["*"]
+        }
       }
     },
     {
-      "Sid": "AllowEc2OperationsOnXogroups",
+      "Sid": "AllowEc2OperationsOnEnabledAsgsColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags",
+        "ec2:DeleteTags",
+        "ec2:TerminateInstances"
+	  ],
+      "Resource": "arn:*:ec2:*:*:instance/*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:enabled": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2OperationsOnXogroupsSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:CreateTags",
@@ -831,9 +866,23 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
       "Resource": "*",
       "Condition": {
         "StringLike": {
-          "aws:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": [
-            "*"
-          ]
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2OperationsOnXogroupsColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags",
+        "ec2:DeleteTags",
+        "ec2:TerminateInstances",
+        "ec2:ModifyNetworkInterfaceAttribute"
+	    ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:xogroup-name": ["*"]
         }
       }
     },
@@ -1218,7 +1267,7 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
     },
 %{ endif }
     {
-      "Sid": "AllowAutoScalingOperationsOnEnabledAsgs",
+      "Sid": "AllowAutoScalingOperationsOnEnabledAsgsSlashes",
       "Effect": "Allow",
       "Action": [
         "autoscaling:AttachInstances",
@@ -1233,7 +1282,30 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
       ],
       "Resource": "arn:*:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/*",
       "Condition": {
-        "StringEquals": {"autoscaling:ResourceTag/xosphere.io/instance-orchestrator/enabled": "true"}
+        "StringEquals": {
+          "autoscaling:ResourceTag/xosphere.io/instance-orchestrator/enabled": "true"
+        }
+      }
+    },
+    {
+      "Sid": "AllowAutoScalingOperationsOnEnabledAsgsColons",
+      "Effect": "Allow",
+      "Action": [
+        "autoscaling:AttachInstances",
+        "autoscaling:BatchPutScheduledUpdateGroupAction",
+        "autoscaling:BatchDeleteScheduledAction",
+        "autoscaling:CreateOrUpdateTags",
+        "autoscaling:DeleteTags",
+        "autoscaling:DetachInstances",
+        "autoscaling:ResumeProcesses",
+        "autoscaling:SuspendProcesses",
+        "autoscaling:UpdateAutoScalingGroup"
+      ],
+      "Resource": "arn:*:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/*",
+      "Condition": {
+        "StringEquals": {
+          "autoscaling:ResourceTag/xosphere:instance-orchestrator:enabled": "true"
+        }
       }
     },
     {
@@ -1248,7 +1320,7 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
       }
     },
     {
-      "Sid": "AllowEc2OperationsOnEnabledAsgs",
+      "Sid": "AllowEc2OperationsOnEnabledAsgsSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:DeleteTags",
@@ -1258,11 +1330,13 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
 	  ],
       "Resource": "*",
       "Condition": {
-        "StringLike": {"aws:ResourceTag/xosphere.io/instance-orchestrator/enabled": ["*"]}
+        "StringLike": {
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/enabled": ["*"]
+        }
       }
     },
     {
-      "Sid": "AllowEc2OperationsOnXogroups",
+      "Sid": "AllowEc2OperationsOnEnabledAsgsColons",
       "Effect": "Allow",
       "Action": [
         "ec2:DeleteTags",
@@ -1272,7 +1346,41 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
 	  ],
       "Resource": "*",
       "Condition": {
-        "StringLike": {"aws:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": ["*"]}
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:enabled": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2OperationsOnXogroupsSlashes",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DeleteTags",
+        "ec2:StopInstances",
+        "ec2:StartInstances",
+        "ec2:TerminateInstances"
+	  ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2OperationsOnXogroupsColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DeleteTags",
+        "ec2:StopInstances",
+        "ec2:StartInstances",
+        "ec2:TerminateInstances"
+	  ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:xogroup-name": ["*"]
+        }
       }
     },
     {
@@ -1418,7 +1526,7 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
         "Resource": "${local.kms_key_pattern}"
     },
     {
-      "Sid": "AllowEc2CreateImageWithOnEnabledTagImage",
+      "Sid": "AllowEc2CreateImageWithOnEnabledTagImageSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:CreateImage"
@@ -1426,14 +1534,12 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
       "Resource": "arn:*:ec2:*::image/*",
       "Condition": {
         "StringLike": {
-          "aws:RequestTag/xosphere.io/instance-orchestrator/enabled": [
-            "*"
-          ]
+          "aws:RequestTag/xosphere.io/instance-orchestrator/enabled": ["*"]
         }
       }
     },
     {
-      "Sid": "AllowEc2CreateImageWithXoGroupTagImage",
+      "Sid": "AllowEc2CreateImageWithOnEnabledTagImageColons",
       "Effect": "Allow",
       "Action": [
         "ec2:CreateImage"
@@ -1441,14 +1547,38 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
       "Resource": "arn:*:ec2:*::image/*",
       "Condition": {
         "StringLike": {
-          "aws:RequestTag/xosphere.io/instance-orchestrator/xogroup-name": [
-            "*"
-          ]
+          "aws:RequestTag/xosphere:instance-orchestrator:enabled": ["*"]
         }
       }
     },
     {
-      "Sid": "AllowEc2CreateImageOnEnabledInstance",
+      "Sid": "AllowEc2CreateImageWithXoGroupTagImageSlashes",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateImage"
+      ],
+      "Resource": "arn:*:ec2:*::image/*",
+      "Condition": {
+        "StringLike": {
+          "aws:RequestTag/xosphere.io/instance-orchestrator/xogroup-name": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2CreateImageWithXoGroupTagImageColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateImage"
+      ],
+      "Resource": "arn:*:ec2:*::image/*",
+      "Condition": {
+        "StringLike": {
+          "aws:RequestTag/xosphere:instance-orchestrator:xogroup-name": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2CreateImageOnEnabledInstanceSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:CreateImage"
@@ -1456,14 +1586,12 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
       "Resource": "arn:*:ec2:*:*:instance/*",
       "Condition": {
         "StringLike": {
-          "aws:ResourceTag/xosphere.io/instance-orchestrator/enabled": [
-            "*"
-          ]
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/enabled": ["*"]
         }
       }
     },
     {
-      "Sid": "AllowEc2CreateImageXoGroupInstance",
+      "Sid": "AllowEc2CreateImageOnEnabledInstanceColons",
       "Effect": "Allow",
       "Action": [
         "ec2:CreateImage"
@@ -1471,15 +1599,39 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
       "Resource": "arn:*:ec2:*:*:instance/*",
       "Condition": {
         "StringLike": {
-          "aws:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": [
-            "*"
-          ]
+          "aws:ResourceTag/xosphere:instance-orchestrator:enabled": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2CreateImageXoGroupInstanceSlashes",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateImage"
+      ],
+      "Resource": "arn:*:ec2:*:*:instance/*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2CreateImageXoGroupInstanceColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateImage"
+      ],
+      "Resource": "arn:*:ec2:*:*:instance/*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:xogroup-name": ["*"]
         }
       }
     },
 %{ if var.enhanced_security_managed_resources }
     {
-      "Sid": "AllowEc2CreateTagsOnEnabled",
+      "Sid": "AllowEc2CreateTagsOnEnabledSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:CreateTags"
@@ -1487,9 +1639,20 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
       "Resource": "*",
       "Condition": {
         "StringLike": {
-          "aws:ResourceTag/xosphere.io/instance-orchestrator/enabled": [
-            "*"
-          ]
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/enabled": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2CreateTagsOnEnabledColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:enabled": ["*"]
         }
       }
     },
@@ -1504,7 +1667,7 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
     },
 %{ endif }    
     {
-      "Sid": "AllowEc2CreateTagsOnXogroups",
+      "Sid": "AllowEc2CreateTagsOnXogroupsSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:CreateTags"
@@ -1512,9 +1675,20 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
       "Resource": "*",
       "Condition": {
         "StringLike": {
-          "aws:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": [
-            "*"
-          ]
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2CreateTagsOnXogroupsColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:xogroup-name": ["*"]
         }
       }
     },
@@ -1652,7 +1826,7 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy_additional
       "Resource": "arn:*:ecs:*:*:cluster/*"
     },
     {
-      "Sid": "AllowAutoScalingOperationsOnEksNodeGroups",
+      "Sid": "AllowAutoScalingOperationsOnEksNodeGroupsSlashes",
       "Effect": "Allow",
       "Action": [
         "autoscaling:CreateOrUpdateTags"
@@ -1666,6 +1840,25 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy_additional
         "ForAllValues:StringEquals": {
           "aws:TagKeys": [
             "xosphere.io/instance-orchestrator/enabled"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "AllowAutoScalingOperationsOnEksNodeGroupsColons",
+      "Effect": "Allow",
+      "Action": [
+        "autoscaling:CreateOrUpdateTags"
+  	  ],
+      "Resource": "arn:*:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/*",
+      "Condition": {
+        "ForAllValues:StringLike": {
+          "aws:ResourceTag/eks:nodegroup-name": [ "*" ],
+          "aws:ResourceTag/eks:cluster-name": [ "*" ]
+        },
+        "ForAllValues:StringEquals": {
+          "aws:TagKeys": [
+            "xosphere:instance-orchestrator:enabled"
           ]
         }
       }
@@ -1786,7 +1979,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
       "Resource": "*"
     },
     {
-      "Sid": "AllowEc2CreateImageWithOnEnabledTagImageSnapshot",
+      "Sid": "AllowEc2CreateImageWithOnEnabledTagImageSnapshotSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:CreateImage"
@@ -1797,14 +1990,12 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
       ],
       "Condition": {
         "StringLike": {
-          "aws:RequestTag/xosphere.io/instance-orchestrator/enabled": [
-            "*"
-          ]
+          "aws:RequestTag/xosphere.io/instance-orchestrator/enabled": ["*"]
         }
       }
     },
     {
-      "Sid": "AllowEc2CreateImageWithXoGroupTagImageSnapshot",
+      "Sid": "AllowEc2CreateImageWithOnEnabledTagImageSnapshotColons",
       "Effect": "Allow",
       "Action": [
         "ec2:CreateImage"
@@ -1815,14 +2006,44 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
       ],
       "Condition": {
         "StringLike": {
-          "aws:RequestTag/xosphere.io/instance-orchestrator/xogroup-name": [
-            "*"
-          ]
+          "aws:RequestTag/xosphere:instance-orchestrator:enabled": ["*"]
         }
       }
     },
     {
-      "Sid": "AllowEc2CreateImageOnEnabledInstance",
+      "Sid": "AllowEc2CreateImageWithXoGroupTagImageSnapshotSlashes",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateImage"
+      ],
+      "Resource": [
+        "arn:*:ec2:*::image/*",
+        "arn:*:ec2:*::snapshot/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "aws:RequestTag/xosphere.io/instance-orchestrator/xogroup-name": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2CreateImageWithXoGroupTagImageSnapshotColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateImage"
+      ],
+      "Resource": [
+        "arn:*:ec2:*::image/*",
+        "arn:*:ec2:*::snapshot/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "aws:RequestTag/xosphere:instance-orchestrator:xogroup-name": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2CreateImageOnEnabledInstanceSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:CreateImage"
@@ -1830,14 +2051,12 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
       "Resource": "arn:*:ec2:*:*:instance/*",
       "Condition": {
         "StringLike": {
-          "aws:ResourceTag/xosphere.io/instance-orchestrator/enabled": [
-            "*"
-          ]
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/enabled": ["*"]
         }
       }
     },
     {
-      "Sid": "AllowEc2CreateImageXoGroupInstance",
+      "Sid": "AllowEc2CreateImageOnEnabledInstanceColons",
       "Effect": "Allow",
       "Action": [
         "ec2:CreateImage"
@@ -1845,9 +2064,33 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
       "Resource": "arn:*:ec2:*:*:instance/*",
       "Condition": {
         "StringLike": {
-          "aws:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": [
-            "*"
-          ]
+          "aws:ResourceTag/xosphere:instance-orchestrator:enabled": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2CreateImageXoGroupInstanceSlashes",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateImage"
+      ],
+      "Resource": "arn:*:ec2:*:*:instance/*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2CreateImageXoGroupInstanceColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateImage"
+      ],
+      "Resource": "arn:*:ec2:*:*:instance/*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:xogroup-name": ["*"]
         }
       }
     },
@@ -1862,7 +2105,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
       ]
     },
     {
-      "Sid": "AllowEc2RegisterImageWithXoGroupTagSnapshot",
+      "Sid": "AllowEc2RegisterImageWithXoGroupTagSnapshotSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:RegisterImage"
@@ -1873,6 +2116,21 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
       "Condition": {
         "StringLike": {
           "aws:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": "*"
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2RegisterImageWithXoGroupTagSnapshotColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:RegisterImage"
+      ],
+      "Resource": [
+        "arn:*:ec2:*::snapshot/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:xogroup-name": "*"
         }
       }
     },
@@ -1892,8 +2150,9 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
           ]
         }
       }
-    },{
-      "Sid": "AllowEc2CreateSnapshotSnapshotEnabled",
+    },
+    {
+      "Sid": "AllowEc2CreateSnapshotSnapshotEnabledSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:CreateSnapshot"
@@ -1903,14 +2162,12 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
       ],
       "Condition": {
         "StringLike": {
-          "aws:RequestTag/xosphere.io/instance-orchestrator/enabled": [
-            "*"
-          ]
+          "aws:RequestTag/xosphere.io/instance-orchestrator/enabled": ["*"]
         }
       }
     },
     {
-      "Sid": "AllowEc2CreateSnapshotSnapshotXoGroup",
+      "Sid": "AllowEc2CreateSnapshotSnapshotEnabledColons",
       "Effect": "Allow",
       "Action": [
         "ec2:CreateSnapshot"
@@ -1920,14 +2177,42 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
       ],
       "Condition": {
         "StringLike": {
-          "aws:RequestTag/xosphere.io/instance-orchestrator/xogroup-name": [
-            "*"
-          ]
+          "aws:RequestTag/xosphere:instance-orchestrator:enabled": ["*"]
         }
       }
     },
     {
-      "Sid": "AllowCreateTagsOnNewSnapshots",
+      "Sid": "AllowEc2CreateSnapshotSnapshotXoGroupSlashes",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateSnapshot"
+      ],
+      "Resource": [
+        "arn:*:ec2:*::snapshot/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "aws:RequestTag/xosphere.io/instance-orchestrator/xogroup-name": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2CreateSnapshotSnapshotXoGroupColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateSnapshot"
+      ],
+      "Resource": [
+        "arn:*:ec2:*::snapshot/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "aws:RequestTag/xosphere:instance-orchestrator:xogroup-name": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowCreateTagsOnNewSnapshotsSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:CreateTags"
@@ -1945,9 +2230,28 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
         }
       }
     },
+    {
+      "Sid": "AllowCreateTagsOnNewSnapshotsColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+      ],
+      "Resource": [
+        "arn:*:ec2:*::image/*",
+        "arn:*:ec2:*::snapshot/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "ec2:CreateAction": [
+            "CreateImage"
+          ],
+          "aws:RequestTag/xosphere:instance-orchestrator:xogroup-name": "*"
+        }
+      }
+    },
 %{ if var.enhanced_security_managed_resources }
     {
-      "Sid": "AllowEc2DeregisterImageOnEnabled",
+      "Sid": "AllowEc2DeregisterImageOnEnabledSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:DeregisterImage"
@@ -1960,7 +2264,20 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
       }
     },
     {
-      "Sid": "AllowEc2DeregisterImageXoGroup",
+      "Sid": "AllowEc2DeregisterImageOnEnabledColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DeregisterImage"
+      ],
+      "Resource": "arn:*:ec2:*::image/*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:enabled": "*"
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2DeregisterImageXoGroupSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:DeregisterImage"
@@ -1969,6 +2286,19 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
       "Condition": {
         "StringLike": {
           "aws:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": "*"
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2DeregisterImageXoGroupColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DeregisterImage"
+      ],
+      "Resource": "arn:*:ec2:*::image/*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:xogroup-name": "*"
         }
       }
     },
@@ -1984,7 +2314,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
 %{ endif }
 %{ if var.enhanced_security_managed_resources }
     {
-      "Sid": "AllowEc2CreateTagsOnEnabled",
+      "Sid": "AllowEc2CreateTagsOnEnabledSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:CreateTags"
@@ -1997,7 +2327,20 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
       }
     },
     {
-      "Sid": "AllowEc2CreateTagsXoGroup",
+      "Sid": "AllowEc2CreateTagsOnEnabledColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:enabled": "*"
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2CreateTagsXoGroupSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:CreateTags"
@@ -2006,6 +2349,19 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
       "Condition": {
         "StringLike": {
           "aws:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": "*"
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2CreateTagsXoGroupColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:xogroup-name": "*"
         }
       }
     },
@@ -2035,7 +2391,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
       }
     },
     {
-      "Sid": "AllowEc2OperationsOnEnabledAsgs",
+      "Sid": "AllowEc2OperationsOnEnabledAsgsSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:DeleteTags",
@@ -2046,14 +2402,28 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
       "Resource": "*",
       "Condition": {
         "StringLike": {
-          "aws:ResourceTag/xosphere.io/instance-orchestrator/enabled": [
-            "*"
-          ]
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/enabled": ["*"]
         }
       }
     },
     {
-      "Sid": "AllowEc2OperationsOnXogroups",
+      "Sid": "AllowEc2OperationsOnEnabledAsgsColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DeleteTags",
+        "ec2:StartInstances",
+        "ec2:StopInstances",
+        "ec2:TerminateInstances"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:enabled": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2OperationsOnXogroupsSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:DeleteTags",
@@ -2065,9 +2435,24 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
       "Resource": "*",
       "Condition": {
         "StringLike": {
-          "aws:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": [
-            "*"
-          ]
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2OperationsOnXogroupsColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DeleteTags",
+        "ec2:StartInstances",
+        "ec2:StopInstances",
+        "ec2:TerminateInstances",
+        "ec2:ModifyNetworkInterfaceAttribute"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:xogroup-name": ["*"]
         }
       }
     },
@@ -2366,7 +2751,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_scheduler_lambda_policy" {
       }
     },
     {
-      "Sid": "AllowEc2OperationsOnSchedules",
+      "Sid": "AllowEc2OperationsOnSchedulesSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:CreateTags",
@@ -2376,7 +2761,25 @@ resource "aws_iam_role_policy" "instance_orchestrator_scheduler_lambda_policy" {
 	  ],
       "Resource": "*",
       "Condition": {
-        "StringLike": {"aws:ResourceTag/xosphere.io/instance-orchestrator/schedule-name": ["*"]}
+        "StringLike": {
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/schedule-name": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2OperationsOnSchedulesColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags",
+        "ec2:DeleteTags",
+        "ec2:StartInstances",
+        "ec2:StopInstances"
+	  ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:schedule-name": ["*"]
+        }
       }
     },
     {
@@ -2614,7 +3017,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_xogroup_enabler_lambda_pol
       "Resource": [ "*" ]
     },
     {
-      "Sid": "AllowEc2OperationsOnXogroupInstances",
+      "Sid": "AllowEc2OperationsOnXogroupInstancesSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:DeleteTags"
@@ -2622,9 +3025,20 @@ resource "aws_iam_role_policy" "instance_orchestrator_xogroup_enabler_lambda_pol
       "Resource": [ "*" ],
       "Condition": {
         "StringLike": {
-          "aws:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": [
-            "*"
-          ]
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2OperationsOnXogroupInstancesColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DeleteTags"
+      ],
+      "Resource": [ "*" ],
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:xogroup-name": ["*"]
         }
       }
     },
@@ -2814,7 +3228,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_budget_driver_lambda_polic
     },
 %{ if var.enhanced_security_managed_resources }
     {
-      "Sid": "AllowEc2CreateTags",
+      "Sid": "AllowEc2CreateTagsSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:CreateTags"
@@ -2823,6 +3237,19 @@ resource "aws_iam_role_policy" "instance_orchestrator_budget_driver_lambda_polic
       "Condition": {
         "StringLike": {
           "aws:ResourceTag/xosphere.io/instance-orchestrator/enabled": "*"
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2CreateTagsColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:enabled": "*"
         }
       }
     },
@@ -2837,18 +3264,33 @@ resource "aws_iam_role_policy" "instance_orchestrator_budget_driver_lambda_polic
     },
 %{ endif }
     {
-      "Sid": "AllowAutoScalingOperationsOnEnabledAsgs",
+      "Sid": "AllowAutoScalingOperationsOnEnabledAsgsSlashes",
       "Effect": "Allow",
       "Action": [
         "autoscaling:UpdateAutoScalingGroup"
       ],
       "Resource": "*",
       "Condition": {
-        "StringLike": {"autoscaling:ResourceTag/xosphere.io/instance-orchestrator/budget-name": ["*"]}
+        "StringLike": {
+          "autoscaling:ResourceTag/xosphere.io/instance-orchestrator/budget-name": ["*"]
+        }
       }
     },
     {
-      "Sid": "AllowEc2OperationsOnBudgets",
+      "Sid": "AllowAutoScalingOperationsOnEnabledAsgsColons",
+      "Effect": "Allow",
+      "Action": [
+        "autoscaling:UpdateAutoScalingGroup"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "autoscaling:ResourceTag/xosphere:instance-orchestrator:budget-name": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2OperationsOnBudgetsSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:DeleteTags",
@@ -2858,7 +3300,25 @@ resource "aws_iam_role_policy" "instance_orchestrator_budget_driver_lambda_polic
 	  ],
       "Resource": "*",
       "Condition": {
-        "StringLike": {"aws:ResourceTag/xosphere.io/instance-orchestrator/budget-name": ["*"]}
+        "StringLike": {
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/budget-name": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2OperationsOnBudgetsColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DeleteTags",
+        "ec2:StartInstances",
+        "ec2:StopInstances",
+        "ec2:TerminateInstances"
+	  ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:budget-name": ["*"]
+        }
       }
     },
     {
@@ -3103,7 +3563,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_budget_lambda_policy" {
       "Resource": "*"
     },
     {
-      "Sid": "AllowEc2OperationsOnBudgets",
+      "Sid": "AllowEc2OperationsOnBudgetsSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:CreateTags",
@@ -3115,9 +3575,24 @@ resource "aws_iam_role_policy" "instance_orchestrator_budget_lambda_policy" {
       "Resource": "*",
       "Condition": {
         "StringLike": {
-          "aws:ResourceTag/xosphere.io/instance-orchestrator/budget-name": [
-            "*"
-          ]
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/budget-name": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2OperationsOnBudgetsColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags",
+        "ec2:DeleteTags",
+        "ec2:StartInstances",
+        "ec2:StopInstances",
+        "ec2:TerminateInstances"
+	  ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:budget-name": ["*"]
         }
       }
     },
@@ -3327,7 +3802,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_snapshot_creator_policy" {
       ]
     },
     {
-      "Sid": "AllowEc2CreateSnapshotSnapshot",
+      "Sid": "AllowEc2CreateSnapshotSnapshotSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:CreateSnapshot"
@@ -3342,7 +3817,22 @@ resource "aws_iam_role_policy" "instance_orchestrator_snapshot_creator_policy" {
       }
     },
     {
-      "Sid": "AllowCreateTagsOnNewSnapshots",
+      "Sid": "AllowEc2CreateSnapshotSnapshotColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateSnapshot"
+	  ],
+      "Resource": [
+        "arn:aws:ec2:*::snapshot/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "aws:RequestTag/xosphere:instance-orchestrator:xogroup-name": "*"
+        }
+      }
+    },
+    {
+      "Sid": "AllowCreateTagsOnNewSnapshotsSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:CreateTags"
@@ -3351,15 +3841,35 @@ resource "aws_iam_role_policy" "instance_orchestrator_snapshot_creator_policy" {
         "arn:aws:ec2:*::snapshot/*"
       ],
       "Condition": {
+        "StringEquals": {
+          "ec2:CreateAction": "CreateSnapshot"
+        },
         "StringLike": {
-          "ec2:CreateAction": "CreateSnapshot",
           "aws:RequestTag/xosphere.io/instance-orchestrator/xogroup-name": "*"
+        }
+      }
+    },
+    {
+      "Sid": "AllowCreateTagsOnNewSnapshotsColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+      ],
+      "Resource": [
+        "arn:aws:ec2:*::snapshot/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "ec2:CreateAction": "CreateSnapshot"
+        },
+        "StringLike": {
+          "aws:RequestTag/xosphere:instance-orchestrator:xogroup-name": "*"
         }
       }
     },
 %{ if var.enhanced_security_managed_resources }
     {
-      "Sid": "AllowEc2DeleteSnapshotXoGroup",
+      "Sid": "AllowEc2DeleteSnapshotXoGroupSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:DeleteSnapshot"
@@ -3370,6 +3880,21 @@ resource "aws_iam_role_policy" "instance_orchestrator_snapshot_creator_policy" {
       "Condition": {
         "StringLike": {
           "aws:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": "*"
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2DeleteSnapshotXoGroupColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DeleteSnapshot"
+      ],
+      "Resource": [
+        "arn:aws:ec2:*::snapshot/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:xogroup-name": "*"
         }
       }
     },
@@ -3387,7 +3912,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_snapshot_creator_policy" {
 %{ endif }
 %{ if var.enhanced_security_managed_resources }
     {
-      "Sid": "AllowEc2CreateTags",
+      "Sid": "AllowEc2CreateTagsSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:CreateTags"
@@ -3399,6 +3924,22 @@ resource "aws_iam_role_policy" "instance_orchestrator_snapshot_creator_policy" {
       "Condition": {
         "StringLike": {
           "aws:ResourceTag/xosphere.io/instance-orchestrator/enabled": "*"
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2CreateTagsColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+      ],
+      "Resource": [
+        "arn:aws:ec2:*::snapshot/*",
+        "arn:aws:ec2:*:*:volume/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:enabled": "*"
         }
       }
     },
@@ -3708,7 +4249,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_ami_cleaner_policy" {
     },
 %{ if var.enhanced_security_managed_resources }
     {
-      "Sid": "AllowEc2DeregisterImageOnEnabled",
+      "Sid": "AllowEc2DeregisterImageOnEnabledSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:DeregisterImage"
@@ -3721,7 +4262,20 @@ resource "aws_iam_role_policy" "instance_orchestrator_ami_cleaner_policy" {
       }
     },
     {
-      "Sid": "AllowEc2DeregisterImageXoGroup",
+      "Sid": "AllowEc2DeregisterImageOnEnabledColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DeregisterImage"
+      ],
+      "Resource": "arn:*:ec2:*::image/*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:enabled": "*"
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2DeregisterImageXoGroupSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:DeregisterImage"
@@ -3730,6 +4284,19 @@ resource "aws_iam_role_policy" "instance_orchestrator_ami_cleaner_policy" {
       "Condition": {
         "StringLike": {
           "aws:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": "*"
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2DeregisterImageXoGroupColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DeregisterImage"
+      ],
+      "Resource": "arn:*:ec2:*::image/*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:xogroup-name": "*"
         }
       }
     },
@@ -3745,7 +4312,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_ami_cleaner_policy" {
 %{ endif }
 %{ if var.enhanced_security_managed_resources }
     {
-      "Sid": "AllowEc2DeleteSnapshotXoGroup",
+      "Sid": "AllowEc2DeleteSnapshotXoGroupSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:DeleteSnapshot"
@@ -3754,6 +4321,19 @@ resource "aws_iam_role_policy" "instance_orchestrator_ami_cleaner_policy" {
       "Condition": {
         "StringLike": {
           "aws:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": "*"
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2DeleteSnapshotXoGroupColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DeleteSnapshot"
+      ],
+      "Resource": "arn:aws:ec2:*::snapshot/*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:xogroup-name": "*"
         }
       }
     },
@@ -3875,7 +4455,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_dlq_handler_policy" {
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Sid": "AllowEc2CreateTagsOnXogroups",
+      "Sid": "AllowEc2CreateTagsOnXogroupsSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:CreateTags"
@@ -3883,9 +4463,20 @@ resource "aws_iam_role_policy" "instance_orchestrator_dlq_handler_policy" {
       "Resource": "*",
       "Condition": {
         "StringLike": {
-          "aws:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": [
-            "*"
-          ]
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2CreateTagsOnXogroupsColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+	  ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:xogroup-name": ["*"]
         }
       }
     },
@@ -4085,7 +4676,7 @@ resource "aws_iam_policy" "run_instances_managed_policy" {
   "Statement": [
 %{ if var.enhanced_security_tag_restrictions }
     {
-      "Sid": "AllowEc2RunInstances",
+      "Sid": "AllowEc2RunInstancesSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:RunInstances"
@@ -4103,7 +4694,7 @@ resource "aws_iam_policy" "run_instances_managed_policy" {
       }
     },
     {
-      "Sid": "AllowEc2RunInstancesOnXoGroup",
+      "Sid": "AllowEc2RunInstancesColons",
       "Effect": "Allow",
       "Action": [
         "ec2:RunInstances"
@@ -4116,14 +4707,12 @@ resource "aws_iam_policy" "run_instances_managed_policy" {
       ],
       "Condition": {
         "StringLike": {
-          "aws:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": [
-            "*"
-          ]
+          "aws:ResourceTag/xosphere:instance-orchestrator:authorized": "true"
         }
       }
     },
     {
-      "Sid": "AllowEc2RunInstancesOnEnabled",
+      "Sid": "AllowEc2RunInstancesOnXoGroupSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:RunInstances"
@@ -4136,9 +4725,61 @@ resource "aws_iam_policy" "run_instances_managed_policy" {
       ],
       "Condition": {
         "StringLike": {
-          "aws:ResourceTag/xosphere.io/instance-orchestrator/enabled": [
-            "*"
-          ]
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2RunInstancesOnXoGroupColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:RunInstances"
+      ],
+      "NotResource": [
+        "arn:*:ec2:*:*:instance/*",
+        "arn:*:ec2:*:*:network-interface/*",
+        "arn:*:ec2:*:*:volume/*",
+        "arn:*:elastic-inference:*:*:elastic-inference-accelerator/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:xogroup-name": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2RunInstancesOnEnabledSlashes",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:RunInstances"
+      ],
+      "NotResource": [
+        "arn:*:ec2:*:*:instance/*",
+        "arn:*:ec2:*:*:network-interface/*",
+        "arn:*:ec2:*:*:volume/*",
+        "arn:*:elastic-inference:*:*:elastic-inference-accelerator/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/enabled": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2RunInstancesOnEnabledColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:RunInstances"
+      ],
+      "NotResource": [
+        "arn:*:ec2:*:*:instance/*",
+        "arn:*:ec2:*:*:network-interface/*",
+        "arn:*:ec2:*:*:volume/*",
+        "arn:*:elastic-inference:*:*:elastic-inference-accelerator/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:enabled": ["*"]
         }
       }
     },
@@ -4163,7 +4804,7 @@ resource "aws_iam_policy" "run_instances_managed_policy" {
       ]
     },
     {
-      "Sid": "AllowEc2RunInstancesOnEnabledInstance",
+      "Sid": "AllowEc2RunInstancesOnEnabledInstanceSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:RunInstances"
@@ -4175,14 +4816,12 @@ resource "aws_iam_policy" "run_instances_managed_policy" {
       ],
       "Condition": {
         "StringLike": {
-          "aws:RequestTag/xosphere.io/instance-orchestrator/enabled": [
-            "*"
-          ]
+          "aws:RequestTag/xosphere.io/instance-orchestrator/enabled": ["*"]
         }
       }
     },
     {
-      "Sid": "AllowEc2RunInstancesXoGroupInstance",
+      "Sid": "AllowEc2RunInstancesOnEnabledInstanceColons",
       "Effect": "Allow",
       "Action": [
         "ec2:RunInstances"
@@ -4194,14 +4833,46 @@ resource "aws_iam_policy" "run_instances_managed_policy" {
       ],
       "Condition": {
         "StringLike": {
-          "aws:RequestTag/xosphere.io/instance-orchestrator/xogroup-name": [
-            "*"
-          ]
+          "aws:RequestTag/xosphere:instance-orchestrator:enabled": ["*"]
         }
       }
     },
     {
-      "Sid": "AllowCreateTagsOnRunInstancesOnEnabled",
+      "Sid": "AllowEc2RunInstancesXoGroupInstanceSlashes",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:RunInstances"
+      ],
+      "Resource": [
+        "arn:*:ec2:*:*:instance/*",
+        "arn:*:ec2:*:*:network-interface/*",
+        "arn:*:ec2:*:*:volume/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "aws:RequestTag/xosphere.io/instance-orchestrator/xogroup-name": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2RunInstancesXoGroupInstanceColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:RunInstances"
+      ],
+      "Resource": [
+        "arn:*:ec2:*:*:instance/*",
+        "arn:*:ec2:*:*:network-interface/*",
+        "arn:*:ec2:*:*:volume/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "aws:RequestTag/xosphere:instance-orchestrator:xogroup-name": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowCreateTagsOnRunInstancesOnEnabledSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:CreateTags"
@@ -4212,16 +4883,16 @@ resource "aws_iam_policy" "run_instances_managed_policy" {
         "arn:*:ec2:*:*:network-interface/*"
       ],
       "Condition": {
+        "StringEquals": {
+          "ec2:CreateAction": "RunInstances"
+        },
         "StringLike": {
-          "ec2:CreateAction": "RunInstances",
-          "aws:RequestTag/xosphere.io/instance-orchestrator/enabled": [
-            "*"
-          ]
+          "aws:RequestTag/xosphere.io/instance-orchestrator/enabled": ["*"]
         }
       }
     },
     {
-      "Sid": "AllowCreateTagsOnRunInstancesXoGroup",
+      "Sid": "AllowCreateTagsOnRunInstancesOnEnabledColons",
       "Effect": "Allow",
       "Action": [
         "ec2:CreateTags"
@@ -4232,15 +4903,56 @@ resource "aws_iam_policy" "run_instances_managed_policy" {
         "arn:*:ec2:*:*:network-interface/*"
       ],
       "Condition": {
+        "StringEquals": {
+          "ec2:CreateAction": "RunInstances"
+        },
         "StringLike": {
-          "ec2:CreateAction": "RunInstances",
-          "aws:RequestTag/xosphere.io/instance-orchestrator/xogroup-name": [
-            "*"
-          ]
+          "aws:RequestTag/xosphere:instance-orchestrator:enabled": ["*"]
         }
       }
-    },{
-      "Sid": "AllowUseKmsOnAuthorized",
+    },
+    {
+      "Sid": "AllowCreateTagsOnRunInstancesXoGroupSlashes",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+      ],
+      "Resource": [
+        "arn:*:ec2:*:*:instance/*",
+        "arn:aws:ec2:*:*:volume/*",
+        "arn:*:ec2:*:*:network-interface/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "ec2:CreateAction": "RunInstances"
+        },
+        "StringLike": {
+          "aws:RequestTag/xosphere.io/instance-orchestrator/xogroup-name": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowCreateTagsOnRunInstancesXoGroupColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+      ],
+      "Resource": [
+        "arn:*:ec2:*:*:instance/*",
+        "arn:aws:ec2:*:*:volume/*",
+        "arn:*:ec2:*:*:network-interface/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "ec2:CreateAction": "RunInstances"
+        },
+        "StringLike": {
+          "aws:RequestTag/xosphere:instance-orchestrator:xogroup-name": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowUseKmsOnAuthorizedSlashes",
       "Effect": "Allow",
       "Action": [
         "kms:Encrypt",
@@ -4258,7 +4970,28 @@ resource "aws_iam_policy" "run_instances_managed_policy" {
           "aws:ResourceTag/xosphere.io/instance-orchestrator/authorized": "true"
         }
       }
-    },{
+    },
+    {
+      "Sid": "AllowUseKmsOnAuthorizedColons",
+      "Effect": "Allow",
+      "Action": [
+        "kms:Encrypt",
+        "kms:Decrypt",
+        "kms:ReEncrypt*",
+        "kms:GenerateDataKey*",
+        "kms:DescribeKey",
+        "kms:CreateGrant"
+      ],
+      "Resource": [
+        "arn:*:kms:*:*:key/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:authorized": "true"
+        }
+      }
+    },
+    {
       "Sid": "AllowSsmReadPublicParameters",
       "Effect": "Allow",
       "Action": [
@@ -4301,7 +5034,7 @@ resource "aws_iam_policy" "create_fleet_managed_policy" {
       ]
     },
     {
-      "Sid": "AllowEc2CreateFleetOnEnabledInstance",
+      "Sid": "AllowEc2CreateFleetOnEnabledInstanceSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:CreateFleet"
@@ -4313,14 +5046,12 @@ resource "aws_iam_policy" "create_fleet_managed_policy" {
       ],
       "Condition": {
         "StringLike": {
-          "aws:RequestTag/xosphere.io/instance-orchestrator/enabled": [
-            "*"
-          ]
+          "aws:RequestTag/xosphere.io/instance-orchestrator/enabled": ["*"]
         }
       }
     },
     {
-      "Sid": "AllowEc2CreateFleetXoGroupInstance",
+      "Sid": "AllowEc2CreateFleetOnEnabledInstanceColons",
       "Effect": "Allow",
       "Action": [
         "ec2:CreateFleet"
@@ -4332,14 +5063,46 @@ resource "aws_iam_policy" "create_fleet_managed_policy" {
       ],
       "Condition": {
         "StringLike": {
-          "aws:RequestTag/xosphere.io/instance-orchestrator/xogroup-name": [
-            "*"
-          ]
+          "aws:RequestTag/xosphere:instance-orchestrator:enabled": ["*"]
         }
       }
     },
     {
-      "Sid": "AllowCreateTagsOnCreateFleetOnEnabled",
+      "Sid": "AllowEc2CreateFleetXoGroupInstanceSlashes",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateFleet"
+      ],
+      "Resource": [
+        "arn:*:ec2:*:*:instance/*",
+        "arn:*:ec2:*:*:network-interface/*",
+        "arn:*:ec2:*:*:volume/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "aws:RequestTag/xosphere.io/instance-orchestrator/xogroup-name": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2CreateFleetXoGroupInstanceColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateFleet"
+      ],
+      "Resource": [
+        "arn:*:ec2:*:*:instance/*",
+        "arn:*:ec2:*:*:network-interface/*",
+        "arn:*:ec2:*:*:volume/*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "aws:RequestTag/xosphere:instance-orchestrator:xogroup-name": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowCreateTagsOnCreateFleetOnEnabledSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:CreateTags"
@@ -4350,16 +5113,16 @@ resource "aws_iam_policy" "create_fleet_managed_policy" {
         "arn:*:ec2:*:*:network-interface/*"
       ],
       "Condition": {
+        "StringEquals": {
+          "ec2:CreateAction": "CreateFleet"
+        },
         "StringLike": {
-          "ec2:CreateAction": "CreateFleet",
-          "aws:RequestTag/xosphere.io/instance-orchestrator/enabled": [
-            "*"
-          ]
+          "aws:RequestTag/xosphere.io/instance-orchestrator/enabled": ["*"]
         }
       }
     },
     {
-      "Sid": "AllowCreateTagsOnCreateFleetXoGroup",
+      "Sid": "AllowCreateTagsOnCreateFleetOnEnabledColons",
       "Effect": "Allow",
       "Action": [
         "ec2:CreateTags"
@@ -4370,15 +5133,56 @@ resource "aws_iam_policy" "create_fleet_managed_policy" {
         "arn:*:ec2:*:*:network-interface/*"
       ],
       "Condition": {
+        "StringEquals": {
+          "ec2:CreateAction": "CreateFleet"
+        },
         "StringLike": {
-          "ec2:CreateAction": "CreateFleet",
-          "aws:RequestTag/xosphere.io/instance-orchestrator/xogroup-name": [
-            "*"
-          ]
+          "aws:RequestTag/xosphere:instance-orchestrator:enabled": ["*"]
         }
       }
-    },{
-      "Sid": "AllowUseKmsOnAuthorized",
+    },
+    {
+      "Sid": "AllowCreateTagsOnCreateFleetXoGroupSlashes",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+      ],
+      "Resource": [
+        "arn:*:ec2:*:*:instance/*",
+        "arn:aws:ec2:*:*:volume/*",
+        "arn:*:ec2:*:*:network-interface/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "ec2:CreateAction": "CreateFleet"
+        },
+        "StringLike": {
+          "aws:RequestTag/xosphere.io/instance-orchestrator/xogroup-name": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowCreateTagsOnCreateFleetXoGroupColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+      ],
+      "Resource": [
+        "arn:*:ec2:*:*:instance/*",
+        "arn:aws:ec2:*:*:volume/*",
+        "arn:*:ec2:*:*:network-interface/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "ec2:CreateAction": "CreateFleet"
+        },
+        "StringLike": {
+          "aws:RequestTag/xosphere:instance-orchestrator:xogroup-name": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowUseKmsOnAuthorizedSlashes",
       "Effect": "Allow",
       "Action": [
         "kms:Encrypt",
@@ -4396,7 +5200,28 @@ resource "aws_iam_policy" "create_fleet_managed_policy" {
           "aws:ResourceTag/xosphere.io/instance-orchestrator/authorized": "true"
         }
       }
-    },{
+    },
+    {
+      "Sid": "AllowUseKmsOnAuthorizedColons",
+      "Effect": "Allow",
+      "Action": [
+        "kms:Encrypt",
+        "kms:Decrypt",
+        "kms:ReEncrypt*",
+        "kms:GenerateDataKey*",
+        "kms:DescribeKey",
+        "kms:CreateGrant"
+      ],
+      "Resource": [
+        "arn:*:kms:*:*:key/*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:authorized": "true"
+        }
+      }
+    },
+    {
       "Sid": "AllowSsmReadPublicParameters",
       "Effect": "Allow",
       "Action": [
@@ -4672,7 +5497,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_attacher_lambda_policy" {
       "Resource": "*"
     },
     {
-      "Sid": "AllowAutoScalingOperationsOnEnabledAsgs",
+      "Sid": "AllowAutoScalingOperationsOnEnabledAsgsSlashes",
       "Effect": "Allow",
       "Action": [
         "autoscaling:AttachInstances",
@@ -4691,7 +5516,26 @@ resource "aws_iam_role_policy" "instance_orchestrator_attacher_lambda_policy" {
       }
     },
     {
-      "Sid": "AllowEc2OperationsOnEnabledAsgs",
+      "Sid": "AllowAutoScalingOperationsOnEnabledAsgsColons",
+      "Effect": "Allow",
+      "Action": [
+        "autoscaling:AttachInstances",
+        "autoscaling:CreateOrUpdateTags",
+        "autoscaling:DeleteTags",
+        "autoscaling:DetachInstances",
+        "autoscaling:ResumeProcesses",
+        "autoscaling:SuspendProcesses",
+        "autoscaling:UpdateAutoScalingGroup"
+      ],
+      "Resource": "arn:*:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/*",
+      "Condition": {
+        "StringEquals": {
+          "autoscaling:ResourceTag/xosphere:instance-orchestrator:enabled": "true"
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2OperationsOnEnabledAsgsSlashes",
       "Effect": "Allow",
       "Action": [
         "ec2:TerminateInstances"
@@ -4700,6 +5544,19 @@ resource "aws_iam_role_policy" "instance_orchestrator_attacher_lambda_policy" {
       "Condition": {
         "StringLike": {
           "aws:ResourceTag/xosphere.io/instance-orchestrator/enabled": "*"
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2OperationsOnEnabledAsgsColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:TerminateInstances"
+      ],
+      "Resource": "arn:*:ec2:*:*:instance/*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:enabled": "*"
         }
       }
     },
