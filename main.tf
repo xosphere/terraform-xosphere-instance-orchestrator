@@ -1,5 +1,5 @@
 locals {
-  version = "0.27.4"
+  version = "0.28.0"
   api_token_arn = (var.secretsmanager_arn_override == null) ? format("arn:aws:secretsmanager:%s:%s:secret:customer/%s", local.xo_account_region, var.xo_account_id, var.customer_id) : var.secretsmanager_arn_override
   api_token_pattern = (var.secretsmanager_arn_override == null) ? format("arn:aws:secretsmanager:%s:%s:secret:customer/%s-??????", local.xo_account_region, var.xo_account_id, var.customer_id) : var.secretsmanager_arn_override
   regions = join(",", var.regions_enabled)
@@ -1972,11 +1972,13 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
         "arn:*:ec2:*::snapshot/*"
       ],
       "Condition": {
-        "StringLike": {
+        "StringEquals": {
           "ec2:CreateAction": [
             "CreateImage"
-          ],
-          "aws:RequestTag/xosphere.io/instance-orchestrator/xogroup-name": "*"
+          ]
+        },
+        "StringLike": {
+          "aws:RequestTag/xosphere.io/instance-orchestrator/xogroup-name": ["*"]
         }
       }
     },
@@ -1991,11 +1993,13 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
         "arn:*:ec2:*::snapshot/*"
       ],
       "Condition": {
-        "StringLike": {
+        "StringEquals": {
           "ec2:CreateAction": [
             "CreateImage"
-          ],
-          "aws:RequestTag/xosphere:instance-orchestrator:xogroup-name": "*"
+          ]
+        },
+        "StringLike": {
+          "aws:RequestTag/xosphere:instance-orchestrator:xogroup-name": ["*"]
         }
       }
     },
@@ -4222,11 +4226,37 @@ resource "aws_iam_role_policy" "instance_orchestrator_dlq_handler_policy" {
       "Effect": "Allow",
       "Action": [
         "ec2:CreateTags"
-	  ],
+      ],
       "Resource": "*",
       "Condition": {
         "StringLike": {
           "aws:ResourceTag/xosphere:instance-orchestrator:xogroup-name": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2CreateTagsOnXogroupInstanceFailureIdSlashes",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/xogroup-instance-failure-id": ["*"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2CreateTagsOnXogroupInstanceFailureIdColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:xogroup-instance-failure-id": ["*"]
         }
       }
     },
@@ -4989,13 +5019,13 @@ EOF
 
 resource "aws_iam_policy" "instance_orchestrator_ec2_managed_policy" {
   name        = "xosphere-instance-orchestrator-ec2-managed-policy"
-  description = "Policy to allow EC2 operations for the Instance Orchestrator Lambda"
+  description = "Policy for EC2 permissions for Instance Orchestrator Lambda"
   policy = <<EOF
 {
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Sid": "AllowOperationsWithoutResourceRestrictions",
+      "Sid": "AllowEc2OperationsWithoutResourceRestrictions",
       "Effect": "Allow",
       "Action": [
         "ec2:CreateLaunchTemplateVersion",
@@ -5655,6 +5685,15 @@ resource "aws_iam_role_policy" "xosphere_support_access_policy" {
         "arn:aws:logs:*:*:log-group:/aws/lambda/xosphere-*",
         "arn:aws:logs:*:*:log-group:/aws/lambda/xosphere-*:log-stream:*"
       ]
+    },
+    {
+      "Sid": "AllowReadOperationsOnXosphereLambdas",
+      "Effect": "Allow",
+      "Action": [
+        "lambda:Get*",
+        "lambda:List*"
+      ],
+      "Resource": "arn:aws:lambda:*:*:function:xosphere-*"
     },
     {
       "Sid": "AllowReadOperationsOnXosphereManagedInstancesAndAsgs",
