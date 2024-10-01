@@ -1,5 +1,5 @@
 locals {
-  version = "0.28.1"
+  version = "0.28.2"
   api_token_arn = (var.secretsmanager_arn_override == null) ? format("arn:aws:secretsmanager:%s:%s:secret:customer/%s", local.xo_account_region, var.xo_account_id, var.customer_id) : var.secretsmanager_arn_override
   api_token_pattern = (var.secretsmanager_arn_override == null) ? format("arn:aws:secretsmanager:%s:%s:secret:customer/%s-??????", local.xo_account_region, var.xo_account_id, var.customer_id) : var.secretsmanager_arn_override
   regions = join(",", var.regions_enabled)
@@ -2134,17 +2134,6 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
         "${aws_s3_bucket.instance_state_s3_bucket.arn}/*"
       ]
     },
-%{ if var.enhanced_security_use_cmk }
-    {
-      "Sid": "AllowKmsCmk",
-      "Effect": "Allow",
-      "Action": [
-        "kms:GenerateDataKey",
-        "kms:Decrypt"
-      ],
-      "Resource": "${aws_kms_key.xosphere_kms_key[0].arn}"
-    },
-%{ endif }
     {
         "Sid": "AllowSnsOperationsOnXosphereTopics",
         "Effect": "Allow",
@@ -2180,46 +2169,6 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
             "kms:Decrypt"
         ],
         "Resource": "${local.kms_key_pattern}"        
-    }
-  ]
-}
-EOF
-}
-
-resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy_additional" {
-  name = "xosphere-instance-orchestrator-launcher-policy-additional"
-  role = aws_iam_role.instance_orchestrator_launcher_lambda_role.id
-  policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "AllowEc2OperationsOnVolumes",
-      "Effect": "Allow",
-      "Action": [
-        "ec2:DeleteVolume"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Sid": "AllowUpdateOperationsWithoutResourceRestrictions",
-      "Effect": "Allow",
-      "Action": [
-        "ec2:AssociateAddress",
-        "ec2:ModifyInstanceAttribute"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Sid": "AllowLoadBalancingOperations",
-      "Effect": "Allow",
-      "Action": [
-        "elasticloadbalancing:DeregisterInstancesFromLoadBalancer", %{ if false } # should use ResourceTag 'authorized', but no Condition Key currently available in IAM %{ endif }
-        "elasticloadbalancing:DeregisterTargets", %{ if false } # should use ResourceTag 'authorized', but no Condition Key currently available in IAM %{ endif }
-        "elasticloadbalancing:RegisterInstancesWithLoadBalancer", %{ if false } # should use ResourceTag 'authorized', but no Condition Key currently available in IAM %{ endif }
-        "elasticloadbalancing:RegisterTargets" %{ if false } # should use ResourceTag 'authorized', but no Condition Key currently available in IAM %{ endif }
-      ],
-      "Resource": "*"
     }
   ]
 }
@@ -5161,14 +5110,42 @@ EOF
 }
 
 resource "aws_iam_policy" "launcher_managed_policy" {
-  name        = "xosphere-instance-orchestrator-launcher-policy"
+  name        = "xosphere-instance-orchestrator-launcher-managed-policy"
   description = "Policy for Launcher"
 
   policy = <<EOF
 {
   "Version": "2012-10-17",
   "Statement": [
-%{ if var.enhanced_security_managed_resources }
+    {
+      "Sid": "AllowEc2OperationsOnVolumes",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DeleteVolume"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "AllowUpdateOperationsWithoutResourceRestrictions",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:AssociateAddress",
+        "ec2:ModifyInstanceAttribute"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "AllowLoadBalancingOperations",
+      "Effect": "Allow",
+      "Action": [
+        "elasticloadbalancing:DeregisterInstancesFromLoadBalancer", %{ if false } # should use ResourceTag 'authorized', but no Condition Key currently available in IAM %{ endif }
+        "elasticloadbalancing:DeregisterTargets", %{ if false } # should use ResourceTag 'authorized', but no Condition Key currently available in IAM %{ endif }
+        "elasticloadbalancing:RegisterInstancesWithLoadBalancer", %{ if false } # should use ResourceTag 'authorized', but no Condition Key currently available in IAM %{ endif }
+        "elasticloadbalancing:RegisterTargets" %{ if false } # should use ResourceTag 'authorized', but no Condition Key currently available in IAM %{ endif }
+      ],
+      "Resource": "*"
+    },
+    %{ if var.enhanced_security_managed_resources }
     {
       "Sid": "AllowEc2DeregisterImageOnEnabledSlashes",
       "Effect": "Allow",
@@ -5292,6 +5269,17 @@ resource "aws_iam_policy" "launcher_managed_policy" {
         "ec2:CreateTags"
       ],
       "Resource": "*"
+    }
+%{ endif }
+%{ if var.enhanced_security_use_cmk }
+    ,{
+      "Sid": "AllowKmsCmk",
+      "Effect": "Allow",
+      "Action": [
+        "kms:GenerateDataKey",
+        "kms:Decrypt"
+      ],
+      "Resource": "${aws_kms_key.xosphere_kms_key[0].arn}"
     }
 %{ endif }
   ]
