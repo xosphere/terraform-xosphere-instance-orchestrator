@@ -1,5 +1,5 @@
 locals {
-  version = "0.28.0"
+  version = "0.28.2"
   api_token_arn = (var.secretsmanager_arn_override == null) ? format("arn:aws:secretsmanager:%s:%s:secret:customer/%s", local.xo_account_region, var.xo_account_id, var.customer_id) : var.secretsmanager_arn_override
   api_token_pattern = (var.secretsmanager_arn_override == null) ? format("arn:aws:secretsmanager:%s:%s:secret:customer/%s-??????", local.xo_account_region, var.xo_account_id, var.customer_id) : var.secretsmanager_arn_override
   regions = join(",", var.regions_enabled)
@@ -1695,7 +1695,7 @@ resource "aws_iam_role" "instance_orchestrator_launcher_lambda_role" {
   ]
 }
 EOF
-  managed_policy_arns = [ aws_iam_policy.run_instances_managed_policy.arn ]
+  managed_policy_arns = [ aws_iam_policy.run_instances_managed_policy.arn, aws_iam_policy.launcher_managed_policy.arn ]
   name = "xosphere-instance-orchestrator-launcher-role"
   path = "/"
   tags = var.tags
@@ -2003,132 +2003,6 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
         }
       }
     },
-%{ if var.enhanced_security_managed_resources }
-    {
-      "Sid": "AllowEc2DeregisterImageOnEnabledSlashes",
-      "Effect": "Allow",
-      "Action": [
-        "ec2:DeregisterImage"
-      ],
-      "Resource": "arn:*:ec2:*::image/*",
-      "Condition": {
-        "StringLike": {
-          "aws:ResourceTag/xosphere.io/instance-orchestrator/enabled": "*"
-        }
-      }
-    },
-    {
-      "Sid": "AllowEc2DeregisterImageOnEnabledColons",
-      "Effect": "Allow",
-      "Action": [
-        "ec2:DeregisterImage"
-      ],
-      "Resource": "arn:*:ec2:*::image/*",
-      "Condition": {
-        "StringLike": {
-          "aws:ResourceTag/xosphere:instance-orchestrator:enabled": "*"
-        }
-      }
-    },
-    {
-      "Sid": "AllowEc2DeregisterImageXoGroupSlashes",
-      "Effect": "Allow",
-      "Action": [
-        "ec2:DeregisterImage"
-      ],
-      "Resource": "arn:*:ec2:*::image/*",
-      "Condition": {
-        "StringLike": {
-          "aws:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": "*"
-        }
-      }
-    },
-    {
-      "Sid": "AllowEc2DeregisterImageXoGroupColons",
-      "Effect": "Allow",
-      "Action": [
-        "ec2:DeregisterImage"
-      ],
-      "Resource": "arn:*:ec2:*::image/*",
-      "Condition": {
-        "StringLike": {
-          "aws:ResourceTag/xosphere:instance-orchestrator:xogroup-name": "*"
-        }
-      }
-    },
-%{ else }
-    {
-      "Sid": "AllowEc2DeregisterImage",
-      "Effect": "Allow",
-      "Action": [
-        "ec2:DeregisterImage"
-      ],
-      "Resource": "arn:*:ec2:*::image/*"
-    },
-%{ endif }
-%{ if var.enhanced_security_managed_resources }
-    {
-      "Sid": "AllowEc2CreateTagsOnEnabledSlashes",
-      "Effect": "Allow",
-      "Action": [
-        "ec2:CreateTags"
-      ],
-      "Resource": "*",
-      "Condition": {
-        "StringLike": {
-          "aws:ResourceTag/xosphere.io/instance-orchestrator/enabled": "*"
-        }
-      }
-    },
-    {
-      "Sid": "AllowEc2CreateTagsOnEnabledColons",
-      "Effect": "Allow",
-      "Action": [
-        "ec2:CreateTags"
-      ],
-      "Resource": "*",
-      "Condition": {
-        "StringLike": {
-          "aws:ResourceTag/xosphere:instance-orchestrator:enabled": "*"
-        }
-      }
-    },
-    {
-      "Sid": "AllowEc2CreateTagsXoGroupSlashes",
-      "Effect": "Allow",
-      "Action": [
-        "ec2:CreateTags"
-      ],
-      "Resource": "*",
-      "Condition": {
-        "StringLike": {
-          "aws:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": "*"
-        }
-      }
-    },
-    {
-      "Sid": "AllowEc2CreateTagsXoGroupColons",
-      "Effect": "Allow",
-      "Action": [
-        "ec2:CreateTags"
-      ],
-      "Resource": "*",
-      "Condition": {
-        "StringLike": {
-          "aws:ResourceTag/xosphere:instance-orchestrator:xogroup-name": "*"
-        }
-      }
-    },
-%{ else }
-    {
-      "Sid": "AllowEc2CreateTags",
-      "Effect": "Allow",
-      "Action": [
-        "ec2:CreateTags"
-      ],
-      "Resource": "*"
-    },
-%{ endif }
     {
       "Sid": "AllowCloudwatchOperationsInXosphereNamespace",
       "Effect": "Allow",
@@ -2260,17 +2134,6 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
         "${aws_s3_bucket.instance_state_s3_bucket.arn}/*"
       ]
     },
-%{ if var.enhanced_security_use_cmk }
-    {
-      "Sid": "AllowKmsCmk",
-      "Effect": "Allow",
-      "Action": [
-        "kms:GenerateDataKey",
-        "kms:Decrypt"
-      ],
-      "Resource": "${aws_kms_key.xosphere_kms_key[0].arn}"
-    },
-%{ endif }
     {
         "Sid": "AllowSnsOperationsOnXosphereTopics",
         "Effect": "Allow",
@@ -2306,46 +2169,6 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
             "kms:Decrypt"
         ],
         "Resource": "${local.kms_key_pattern}"        
-    }
-  ]
-}
-EOF
-}
-
-resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy_additional" {
-  name = "xosphere-instance-orchestrator-launcher-policy-additional"
-  role = aws_iam_role.instance_orchestrator_launcher_lambda_role.id
-  policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "AllowEc2OperationsOnVolumes",
-      "Effect": "Allow",
-      "Action": [
-        "ec2:DeleteVolume"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Sid": "AllowUpdateOperationsWithoutResourceRestrictions",
-      "Effect": "Allow",
-      "Action": [
-        "ec2:AssociateAddress",
-        "ec2:ModifyInstanceAttribute"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Sid": "AllowLoadBalancingOperations",
-      "Effect": "Allow",
-      "Action": [
-        "elasticloadbalancing:DeregisterInstancesFromLoadBalancer", %{ if false } # should use ResourceTag 'authorized', but no Condition Key currently available in IAM %{ endif }
-        "elasticloadbalancing:DeregisterTargets", %{ if false } # should use ResourceTag 'authorized', but no Condition Key currently available in IAM %{ endif }
-        "elasticloadbalancing:RegisterInstancesWithLoadBalancer", %{ if false } # should use ResourceTag 'authorized', but no Condition Key currently available in IAM %{ endif }
-        "elasticloadbalancing:RegisterTargets" %{ if false } # should use ResourceTag 'authorized', but no Condition Key currently available in IAM %{ endif }
-      ],
-      "Resource": "*"
     }
   ]
 }
@@ -5281,6 +5104,184 @@ resource "aws_iam_policy" "instance_orchestrator_ec2_managed_policy" {
         }
       }
     }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_policy" "launcher_managed_policy" {
+  name        = "xosphere-instance-orchestrator-launcher-managed-policy"
+  description = "Policy for Launcher"
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowEc2OperationsOnVolumes",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DeleteVolume"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "AllowUpdateOperationsWithoutResourceRestrictions",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:AssociateAddress",
+        "ec2:ModifyInstanceAttribute"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "AllowLoadBalancingOperations",
+      "Effect": "Allow",
+      "Action": [
+        "elasticloadbalancing:DeregisterInstancesFromLoadBalancer", %{ if false } # should use ResourceTag 'authorized', but no Condition Key currently available in IAM %{ endif }
+        "elasticloadbalancing:DeregisterTargets", %{ if false } # should use ResourceTag 'authorized', but no Condition Key currently available in IAM %{ endif }
+        "elasticloadbalancing:RegisterInstancesWithLoadBalancer", %{ if false } # should use ResourceTag 'authorized', but no Condition Key currently available in IAM %{ endif }
+        "elasticloadbalancing:RegisterTargets" %{ if false } # should use ResourceTag 'authorized', but no Condition Key currently available in IAM %{ endif }
+      ],
+      "Resource": "*"
+    },
+    %{ if var.enhanced_security_managed_resources }
+    {
+      "Sid": "AllowEc2DeregisterImageOnEnabledSlashes",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DeregisterImage"
+      ],
+      "Resource": "arn:*:ec2:*::image/*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/enabled": "*"
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2DeregisterImageOnEnabledColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DeregisterImage"
+      ],
+      "Resource": "arn:*:ec2:*::image/*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:enabled": "*"
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2DeregisterImageXoGroupSlashes",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DeregisterImage"
+      ],
+      "Resource": "arn:*:ec2:*::image/*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": "*"
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2DeregisterImageXoGroupColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DeregisterImage"
+      ],
+      "Resource": "arn:*:ec2:*::image/*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:xogroup-name": "*"
+        }
+      }
+    },
+%{ else }
+    {
+      "Sid": "AllowEc2DeregisterImage",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DeregisterImage"
+      ],
+      "Resource": "arn:*:ec2:*::image/*"
+    },
+%{ endif }
+%{ if var.enhanced_security_managed_resources }
+    {
+      "Sid": "AllowEc2CreateTagsOnEnabledSlashes",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/enabled": "*"
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2CreateTagsOnEnabledColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:enabled": "*"
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2CreateTagsXoGroupSlashes",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/xogroup-name": "*"
+        }
+      }
+    },
+    {
+      "Sid": "AllowEc2CreateTagsXoGroupColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:xogroup-name": "*"
+        }
+      }
+    }
+%{ else }
+    {
+      "Sid": "AllowEc2CreateTags",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+      ],
+      "Resource": "*"
+    }
+%{ endif }
+%{ if var.enhanced_security_use_cmk }
+    ,{
+      "Sid": "AllowKmsCmk",
+      "Effect": "Allow",
+      "Action": [
+        "kms:GenerateDataKey",
+        "kms:Decrypt"
+      ],
+      "Resource": "${aws_kms_key.xosphere_kms_key[0].arn}"
+    }
+%{ endif }
   ]
 }
 EOF
