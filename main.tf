@@ -776,7 +776,6 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
         "ec2:DescribeSpotPriceHistory",
         "ec2:DescribeSubnets",
         "ec2:DescribeVolumes",
-        "ec2:GetSpotPlacementScores",
         "ecs:ListClusters",
         "ec2:ModifyInstanceAttribute",
         "elasticloadbalancing:DescribeTargetGroups",
@@ -4868,8 +4867,7 @@ resource "aws_iam_policy" "instance_orchestrator_ec2_managed_policy" {
         "ec2:DescribeSpotPriceHistory",
         "ec2:DescribeSubnets",
         "ec2:DescribeTags",
-        "ec2:DescribeVolumes",
-        "ec2:GetSpotPlacementScores"
+        "ec2:DescribeVolumes"
       ],
       "Resource": "*"
     },
