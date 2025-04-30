@@ -26,18 +26,45 @@ data "aws_region" "current" {}
 
 resource "aws_s3_bucket" "instance_state_s3_logging_bucket" {
   count = var.create_logging_buckets ? 1 : 0
-  server_side_encryption_configuration {
-    rule {
-      apply_server_side_encryption_by_default {
-        sse_algorithm = var.enhanced_security_use_cmk ? "aws:kms": "AES256"
-        kms_master_key_id = var.enhanced_security_use_cmk ? aws_kms_key.xosphere_kms_key[0].arn : null
-      }
-    }
-  }
   force_destroy = true
   bucket_prefix = var.logging_bucket_name_override == null ? "xosphere-io-logging" : null
   bucket = var.logging_bucket_name_override == null ? null : var.logging_bucket_name_override
   tags = var.tags
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "instance_state_s3_logging_bucket_sse" {
+  count  = var.create_logging_buckets ? 1 : 0
+  bucket = aws_s3_bucket.instance_state_s3_logging_bucket[0].id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm     = var.enhanced_security_use_cmk ? "aws:kms" : "AES256"
+      kms_master_key_id = var.enhanced_security_use_cmk ? aws_kms_key.xosphere_kms_key[0].arn : null
+    }
+  }
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "instance_state_s3_logging_lifecycle" {
+  count  = var.create_logging_buckets ? 1 : 0
+  bucket = aws_s3_bucket.instance_state_s3_logging_bucket[0].id
+
+  rule {
+    id     = "TransitionToGlacierThenDelete"
+    status = "Enabled"
+
+    filter {
+      prefix = "" # Applies to all objects
+    }
+
+    transition {
+      days          = 90
+      storage_class = "GLACIER"
+    }
+
+    expiration {
+      days = 365
+    }
+  }
 }
 
 resource "aws_s3_bucket_policy" "instance_state_s3_logging_bucket_policy" {
@@ -110,23 +137,43 @@ resource "aws_s3_bucket" "instance_state_s3_bucket" {
   force_destroy = true
   bucket_prefix = var.state_bucket_name_override == null ? "xosphere-instance-orchestrator" : null
   bucket = var.state_bucket_name_override == null ? null : var.state_bucket_name_override
-  server_side_encryption_configuration {
-    rule {
-      apply_server_side_encryption_by_default {
-        sse_algorithm = var.enhanced_security_use_cmk ? "aws:kms": "AES256"
-        kms_master_key_id = var.enhanced_security_use_cmk ? aws_kms_key.xosphere_kms_key[0].arn : null
-      }
-    }
-  }
-
-  dynamic "logging" {
-    for_each = var.create_logging_buckets ? [1] : []
-    content {
-      target_bucket = aws_s3_bucket.instance_state_s3_logging_bucket[0].id
-      target_prefix = "xosphere-instance-orchestrator-logs"
-    }
-  }
   tags = var.tags
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "instance_state_s3_bucket_sse" {
+  bucket = aws_s3_bucket.instance_state_s3_bucket.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm     = var.enhanced_security_use_cmk ? "aws:kms" : "AES256"
+      kms_master_key_id = var.enhanced_security_use_cmk ? aws_kms_key.xosphere_kms_key[0].arn : null
+    }
+  }
+}
+
+resource "aws_s3_bucket_logging" "instance_state_s3_bucket_logging" {
+  count = var.create_logging_buckets ? 1 : 0
+
+  bucket        = aws_s3_bucket.instance_state_s3_bucket.id
+  target_bucket = aws_s3_bucket.instance_state_s3_logging_bucket[0].id
+  target_prefix = "xosphere-instance-orchestrator-logs"
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "instance_state_s3_bucket_lifecycle" {
+  bucket = aws_s3_bucket.instance_state_s3_bucket.id
+
+  rule {
+    id     = "DeleteAfter2Years"
+    status = "Enabled"
+
+    filter {
+      prefix = "" # Applies to all objects
+    }
+
+    expiration {
+      days = 730
+    }
+  }
 }
 
 resource "aws_s3_bucket_policy" "instance_state_s3_bucket_policy" {
