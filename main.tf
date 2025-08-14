@@ -1716,6 +1716,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
         "ec2:DescribeAvailabilityZones",
         "ec2:DescribeImages",
         "ec2:DescribeInstanceAttribute",
+        "ec2:DescribeInstanceCreditSpecifications",
         "ec2:DescribeInstanceStatus",
         "ec2:DescribeInstances",
         "ec2:DescribeSpotPriceHistory",
