@@ -1712,6 +1712,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
       "Effect": "Allow",
       "Action": [
         "ec2:DescribeAccountAttributes",
+        "ec2:DescribeAddresses",
         "ec2:DescribeAvailabilityZones",
         "ec2:DescribeImages",
         "ec2:DescribeInstanceAttribute",
