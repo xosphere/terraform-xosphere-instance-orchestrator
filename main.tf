@@ -5457,6 +5457,52 @@ resource "aws_iam_role_policy" "instance_orchestrator_terraformer_lambda_policy"
     },
 %{ endif }
     {
+      "Sid": "S3BucketMetaWhenAuthorized",
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket",
+        "s3:GetBucketLocation"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/authorized": "true"
+        }
+      }
+    },
+    {
+      "Sid": "S3StateAccessWhenAuthorized",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:PutObjectTagging"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "s3:ExistingObjectTag/xosphere.io/instance-orchestrator/authorized": "true"
+        }
+      }
+    },
+    {
+      "Sid": "TerraformLockTableAccessWhenAuthorized",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:DescribeTable",
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem",
+        "dynamodb:DeleteItem"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "dynamodb:ResourceTag/xosphere.io/instance-orchestrator/authorized": "true"
+        }
+      }
+    },
+    {
       "Sid": "AllowLogOperationsOnXosphereLogGroups",
       "Effect": "Allow",
       "Action": [
