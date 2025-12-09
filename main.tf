@@ -32,6 +32,15 @@ resource "aws_s3_bucket" "instance_state_s3_logging_bucket" {
   tags = var.tags
 }
 
+resource "aws_s3_bucket_public_access_block" "instance_state_s3_logging_bucket_public_access_block" {
+  count = var.create_logging_buckets ? 1 : 0
+  bucket = aws_s3_bucket.instance_state_s3_logging_bucket[0].id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
 resource "aws_s3_bucket_server_side_encryption_configuration" "instance_state_s3_logging_bucket_sse" {
   count  = var.create_logging_buckets ? 1 : 0
   bucket = aws_s3_bucket.instance_state_s3_logging_bucket[0].id
@@ -70,6 +79,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "instance_state_s3_logging_life
 resource "aws_s3_bucket_policy" "instance_state_s3_logging_bucket_policy" {
   count = var.create_logging_buckets ? 1 : 0
   bucket = aws_s3_bucket.instance_state_s3_logging_bucket[0].id
+  depends_on = [aws_s3_bucket_public_access_block.instance_state_s3_logging_bucket_public_access_block]
   policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -124,20 +134,19 @@ resource "aws_s3_bucket_policy" "instance_state_s3_logging_bucket_policy" {
 EOF
 }
 
-resource "aws_s3_bucket_public_access_block" "instance_state_s3_logging_bucket_public_access_block" {
-  count = var.create_logging_buckets ? 1 : 0
-  bucket = aws_s3_bucket.instance_state_s3_logging_bucket[0].id
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-
 resource "aws_s3_bucket" "instance_state_s3_bucket" {
   force_destroy = true
   bucket_prefix = var.state_bucket_name_override == null ? "xosphere-instance-orchestrator" : null
   bucket = var.state_bucket_name_override == null ? null : var.state_bucket_name_override
   tags = var.tags
+}
+
+resource "aws_s3_bucket_public_access_block" "instance_state_s3_bucket_public_access_block" {
+  bucket = aws_s3_bucket.instance_state_s3_bucket.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "instance_state_s3_bucket_sse" {
@@ -178,6 +187,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "instance_state_s3_bucket_lifec
 
 resource "aws_s3_bucket_policy" "instance_state_s3_bucket_policy" {
   bucket = aws_s3_bucket.instance_state_s3_bucket.id
+  depends_on = [aws_s3_bucket_public_access_block.instance_state_s3_bucket_public_access_block]
   policy = <<EOF
 {
   "Version": "2012-10-17",
@@ -209,14 +219,6 @@ resource "aws_s3_bucket_policy" "instance_state_s3_bucket_policy" {
   ]
 }
 EOF
-}
-
-resource "aws_s3_bucket_public_access_block" "instance_state_s3_bucket_public_access_block" {
-  bucket = aws_s3_bucket.instance_state_s3_bucket.id
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
 }
 
 resource "aws_sqs_queue" "instance_orchestrator_launcher_dlq" {
