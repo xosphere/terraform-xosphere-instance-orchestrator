@@ -335,6 +335,21 @@ variable "terraform_backend_dynamodb_table" {
   default = ""
 }
 
+variable "terraform_backend_assume_role_arn" {
+  description = "Optional role ARN to assume for Terraform backend operations"
+  default = ""
+}
+
+variable "terraform_backend_assume_role_external_id" {
+  description = "Optional external ID for Terraform backend assume role"
+  default = ""
+}
+
+variable "terraform_backend_assume_role_session_name" {
+  description = "Optional session name for Terraform backend assume role"
+  default = "xosphere-terraformer"
+}
+
 variable "terraformer_memory_size" {
   description = "Memory size allocated to Lambda"
   default = 1024

@@ -9,6 +9,7 @@ locals {
   has_global_terraform_settings = var.terraform_version != "" || var.terraform_aws_provider_version != "" || var.terraform_backend_aws_region != "" || var.terraform_backend_s3_bucket != "" || var.terraform_backend_s3_key != ""
   needDefineTerraformS3Permission = var.terraform_backend_s3_bucket != "" && var.terraform_backend_aws_region != ""
   needDefineTerraformDynamoDBPermission = var.terraform_backend_dynamodb_table != ""
+  needDefineTerraformAssumeRolePermission = var.terraform_backend_assume_role_arn != ""
   has_k8s_vpc_config = ((length(var.k8s_vpc_security_group_ids) > 0) && (length(var.k8s_vpc_subnet_ids) > 0))
   has_k8s_vpc_config_string = local.has_k8s_vpc_config ? "true" : "false"
   organization_management_account_enabled = var.management_account_region != "" || var.management_aws_account_id != ""
@@ -5358,6 +5359,9 @@ resource "aws_lambda_function" "instance_orchestrator_terraformer_lambda" {
       TERRAFORM_BACKEND_S3_BUCKET = var.terraform_backend_s3_bucket
       TERRAFORM_BACKEND_S3_KEY = var.terraform_backend_s3_key
       TERRAFORM_BACKEND_DYNAMODB_TABLE = var.terraform_backend_dynamodb_table
+      TERRAFORM_BACKEND_ASSUME_ROLE_ARN = var.terraform_backend_assume_role_arn
+      TERRAFORM_BACKEND_ASSUME_ROLE_EXTERNAL_ID = var.terraform_backend_assume_role_external_id
+      TERRAFORM_BACKEND_ASSUME_ROLE_SESSION_NAME = var.terraform_backend_assume_role_session_name
     }
   }
   function_name = "xosphere-instance-orchestrator-terraformer"
@@ -5458,6 +5462,42 @@ resource "aws_iam_role_policy" "instance_orchestrator_terraformer_lambda_policy"
       "Resource": "arn:aws:dynamodb:*:*:table/${var.terraform_backend_dynamodb_table}"
     },
 %{ endif }
+%{ if local.needDefineTerraformAssumeRolePermission }
+    {
+      "Sid": "AllowTerraformBackendAssumeRole",
+      "Effect": "Allow",
+      "Action": [
+        "sts:AssumeRole"
+      ],
+      "Resource": "${var.terraform_backend_assume_role_arn}"
+    },
+%{ endif }
+    {
+      "Sid": "TerraformBackendAssumeRoleWhenAuthorized",
+      "Effect": "Allow",
+      "Action": [
+        "sts:AssumeRole"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/authorized": "true"
+        }
+      }
+    },
+    {
+      "Sid": "TerraformBackendAssumeRoleWhenAuthorizedColon",
+      "Effect": "Allow",
+      "Action": [
+        "sts:AssumeRole"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:authorized": "true"
+        }
+      }
+    },
     {
       "Sid": "S3BucketMetaWhenAuthorized",
       "Effect": "Allow",
