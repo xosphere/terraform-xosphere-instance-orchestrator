@@ -10,6 +10,7 @@ locals {
   needDefineTerraformS3Permission = var.terraform_backend_s3_bucket != "" && var.terraform_backend_aws_region != ""
   needDefineTerraformDynamoDBPermission = var.terraform_backend_use_lockfile != "true" && var.terraform_backend_dynamodb_table != ""
   needDefineTerraformAssumeRolePermission = var.terraform_backend_assume_role_arn != ""
+  needDefineTerraformProviderAssumeRolePermission = var.terraform_provider_assume_role_arn != ""
   has_k8s_vpc_config = ((length(var.k8s_vpc_security_group_ids) > 0) && (length(var.k8s_vpc_subnet_ids) > 0))
   has_k8s_vpc_config_string = local.has_k8s_vpc_config ? "true" : "false"
   organization_management_account_enabled = var.management_account_region != "" || var.management_aws_account_id != ""
@@ -5363,6 +5364,9 @@ resource "aws_lambda_function" "instance_orchestrator_terraformer_lambda" {
       TERRAFORM_BACKEND_ASSUME_ROLE_EXTERNAL_ID = var.terraform_backend_assume_role_external_id
       TERRAFORM_BACKEND_ASSUME_ROLE_SESSION_NAME = var.terraform_backend_assume_role_session_name
       TERRAFORM_BACKEND_USE_LOCKFILE = var.terraform_backend_use_lockfile
+      TERRAFORM_PROVIDER_ASSUME_ROLE_ARN = var.terraform_provider_assume_role_arn
+      TERRAFORM_PROVIDER_ASSUME_ROLE_EXTERNAL_ID = var.terraform_provider_assume_role_external_id
+      TERRAFORM_PROVIDER_ASSUME_ROLE_SESSION_NAME = var.terraform_provider_assume_role_session_name
     }
   }
   function_name = "xosphere-instance-orchestrator-terraformer"
@@ -5473,8 +5477,18 @@ resource "aws_iam_role_policy" "instance_orchestrator_terraformer_lambda_policy"
       "Resource": "${var.terraform_backend_assume_role_arn}"
     },
 %{ endif }
+%{ if local.needDefineTerraformProviderAssumeRolePermission }
     {
-      "Sid": "TerraformBackendAssumeRoleWhenAuthorized",
+      "Sid": "AllowTerraformProviderAssumeRole",
+      "Effect": "Allow",
+      "Action": [
+        "sts:AssumeRole"
+      ],
+      "Resource": "${var.terraform_provider_assume_role_arn}"
+    },
+%{ endif }
+    {
+      "Sid": "TerraformAssumeRoleWhenAuthorized",
       "Effect": "Allow",
       "Action": [
         "sts:AssumeRole"
@@ -5487,7 +5501,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_terraformer_lambda_policy"
       }
     },
     {
-      "Sid": "TerraformBackendAssumeRoleWhenAuthorizedColon",
+      "Sid": "TerraformAssumeRoleWhenAuthorizedColon",
       "Effect": "Allow",
       "Action": [
         "sts:AssumeRole"

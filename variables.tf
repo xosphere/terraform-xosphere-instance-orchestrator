@@ -355,6 +355,21 @@ variable "terraform_backend_use_lockfile" {
   default = ""
 }
 
+variable "terraform_provider_assume_role_arn" {
+  description = "Optional role ARN for the AWS provider to assume for Terraform resource operations (e.g. workload account)."
+  default = ""
+}
+
+variable "terraform_provider_assume_role_external_id" {
+  description = "Optional external ID for Terraform provider assume role."
+  default = ""
+}
+
+variable "terraform_provider_assume_role_session_name" {
+  description = "Optional session name for Terraform provider assume role (default: xosphere-terraformer)."
+  default = "xosphere-terraformer"
+}
+
 variable "terraformer_memory_size" {
   description = "Memory size allocated to Lambda"
   default = 1024
