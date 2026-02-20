@@ -350,6 +350,11 @@ variable "terraform_backend_assume_role_session_name" {
   default = "xosphere-terraformer"
 }
 
+variable "terraform_backend_use_lockfile" {
+  description = "If set to \"true\", use S3 native lock file for Terraform state locking instead of DynamoDB."
+  default = ""
+}
+
 variable "terraformer_memory_size" {
   description = "Memory size allocated to Lambda"
   default = 1024
