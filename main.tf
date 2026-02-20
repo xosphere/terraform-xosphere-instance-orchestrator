@@ -427,7 +427,7 @@ resource "aws_lambda_function" "xosphere_event_router_lambda" {
   handler = "bootstrap"
   memory_size = 128
   role = aws_iam_role.xosphere_event_router_iam_role.arn
-  runtime = "provided.al2"
+  runtime = "provided.al2023"
   architectures = [ "arm64" ]
   timeout = 900
   tags = var.tags
@@ -472,7 +472,7 @@ resource "aws_lambda_function" "xosphere_event_router_enhancer_lambda" {
   handler = "bootstrap"
   memory_size = 128
   role = aws_iam_role.xosphere_event_router_iam_role.arn
-  runtime = "provided.al2"
+  runtime = "provided.al2023"
   architectures = [ "arm64" ]
   timeout = 900
   tags = var.tags
@@ -772,7 +772,7 @@ resource "aws_lambda_function" "xosphere_terminator_lambda" {
   handler = "bootstrap"
   memory_size = var.terminator_lambda_memory_size
   role = aws_iam_role.xosphere_terminator_role.arn
-  runtime = "provided.al2"
+  runtime = "provided.al2023"
   architectures = [ "arm64" ]
   timeout = var.terminator_lambda_timeout
   tags = var.tags
@@ -1172,7 +1172,7 @@ resource "aws_lambda_function" "xosphere_instance_orchestrator_lambda" {
   handler = "bootstrap"
   memory_size = var.lambda_memory_size
   role = aws_iam_role.xosphere_instance_orchestrator_role.arn
-  runtime = "provided.al2"
+  runtime = "provided.al2023"
   architectures = [ "arm64" ]
   timeout = var.lambda_timeout
   tags = var.tags
@@ -1661,7 +1661,7 @@ resource "aws_lambda_function" "xosphere_instance_orchestrator_launcher_lambda" 
   handler = "bootstrap"
   memory_size = var.io_launcher_memory_size
   role = aws_iam_role.instance_orchestrator_launcher_lambda_role.arn
-  runtime = "provided.al2"
+  runtime = "provided.al2023"
   architectures = [ "arm64" ]
   timeout = var.io_launcher_lambda_timeout
   reserved_concurrent_executions = 20
@@ -2260,7 +2260,7 @@ resource "aws_lambda_function" "instance_orchestrator_scheduler_lambda" {
   handler = "bootstrap"
   memory_size = var.io_scheduler_memory_size
   role = aws_iam_role.instance_orchestrator_scheduler_lambda_role.arn
-  runtime = "provided.al2"
+  runtime = "provided.al2023"
   architectures = [ "arm64" ]
   timeout = var.io_scheduler_lambda_timeout
   tags = var.tags
@@ -2512,7 +2512,7 @@ resource "aws_lambda_function" "instance_orchestrator_scheduler_cloudwatch_event
   handler = "bootstrap"
   memory_size = var.io_scheduler_memory_size
   role = aws_iam_role.instance_orchestrator_scheduler_lambda_role.arn
-  runtime = "provided.al2"
+  runtime = "provided.al2023"
   architectures = [ "arm64" ]
   timeout = var.io_scheduler_lambda_timeout
   tags = var.tags
@@ -2556,7 +2556,7 @@ resource "aws_lambda_function" "instance_orchestrator_xogroup_enabler_lambda" {
   handler = "bootstrap"
   memory_size = var.io_xogroup_enabler_memory_size
   role = aws_iam_role.instance_orchestrator_xogroup_enabler_lambda_role.arn
-  runtime = "provided.al2"
+  runtime = "provided.al2023"
   architectures = [ "arm64" ]
   timeout = var.io_xogroup_enabler_lambda_timeout
   tags = var.tags
@@ -2742,7 +2742,7 @@ resource "aws_lambda_function" "instance_orchestrator_budget_driver_lambda" {
   handler = "bootstrap"
   memory_size = var.io_budget_driver_memory_size
   role = aws_iam_role.instance_orchestrator_budget_driver_lambda_role.arn
-  runtime = "provided.al2"
+  runtime = "provided.al2023"
   architectures = [ "arm64" ]
   timeout = var.io_budget_driver_lambda_timeout
   tags = var.tags
@@ -3081,7 +3081,7 @@ resource "aws_lambda_function" "instance_orchestrator_budget_lambda" {
   handler = "bootstrap"
   memory_size = var.io_budget_memory_size
   role = aws_iam_role.instance_orchestrator_budget_lambda_role.arn
-  runtime = "provided.al2"
+  runtime = "provided.al2023"
   architectures = [ "arm64" ]
   timeout = var.io_budget_lambda_timeout
   tags = var.tags
@@ -3311,7 +3311,7 @@ resource "aws_lambda_function" "instance_orchestrator_snapshot_creator_lambda" {
   handler = "bootstrap"
   memory_size = var.snapshot_creator_memory_size
   role = aws_iam_role.instance_orchestrator_snapshot_creator_role.arn
-  runtime = "provided.al2"
+  runtime = "provided.al2023"
   architectures = [ "arm64" ]
   timeout = var.snapshot_creator_lambda_timeout
   tags = var.tags
@@ -3623,7 +3623,7 @@ resource "aws_lambda_function" "instance_orchestrator_group_inspector_lambda" {
   handler = "bootstrap"
   memory_size = var.io_group_inspector_memory_size
   role = aws_iam_role.instance_orchestrator_group_inspector_role.arn
-  runtime = "provided.al2"
+  runtime = "provided.al2023"
   architectures = [ "arm64" ]
   timeout = var.io_group_inspector_lambda_timeout
   tags = var.tags
@@ -3776,7 +3776,7 @@ resource "aws_lambda_function" "instance_orchestrator_ami_cleaner_lambda" {
   handler = "bootstrap"
   memory_size = var.ami_cleaner_memory_size
   role = aws_iam_role.instance_orchestrator_ami_cleaner_role.arn
-  runtime = "provided.al2"
+  runtime = "provided.al2023"
   architectures = [ "arm64" ]
   timeout = var.ami_cleaner_lambda_timeout
   tags = var.tags
@@ -3986,7 +3986,7 @@ resource "aws_lambda_function" "instance_orchestrator_dlq_handler_lambda" {
   handler = "bootstrap"
   memory_size = var.dlq_handler_memory_size
   role = aws_iam_role.instance_orchestrator_dlq_handler_role.arn
-  runtime = "provided.al2"
+  runtime = "provided.al2023"
   architectures = [ "arm64" ]
   timeout = var.dlq_handler_lambda_timeout
   tags = var.tags
@@ -4187,7 +4187,7 @@ resource "aws_lambda_function" "xosphere_io_bridge_lambda" {
   handler = "bootstrap"
   memory_size = var.io_bridge_memory_size
   role = aws_iam_role.io_bridge_lambda_role[count.index].arn
-  runtime = "provided.al2"
+  runtime = "provided.al2023"
   architectures = [ "arm64" ]
   vpc_config {
     security_group_ids = var.k8s_vpc_security_group_ids
@@ -5373,7 +5373,7 @@ resource "aws_lambda_function" "instance_orchestrator_terraformer_lambda" {
   handler = "bootstrap"
   memory_size = var.terraformer_memory_size
   role = aws_iam_role.instance_orchestrator_terraformer_lambda_role.arn
-  runtime = "provided.al2"
+  runtime = "provided.al2023"
   architectures = [ "arm64" ]
   timeout = var.terraformer_lambda_timeout
   tags = var.tags
@@ -5666,7 +5666,7 @@ resource "aws_lambda_function" "instance_orchestrator_attacher_lambda" {
   handler = "bootstrap"
   memory_size = var.attacher_memory_size
   role = aws_iam_role.instance_orchestrator_attacher_lambda_role.arn
-  runtime = "provided.al2"
+  runtime = "provided.al2023"
   architectures = [ "arm64" ]
   timeout = var.attacher_lambda_timeout
   tags = var.tags
