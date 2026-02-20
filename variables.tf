@@ -342,7 +342,7 @@ variable "terraformer_memory_size" {
 
 variable "terraformer_ephemeral_storage" {
   description = "Ephemeral storage size allocated to Lambda"
-  default = 1024
+  default = 2048
 }
 
 variable "terraformer_lambda_timeout" {
