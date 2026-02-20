@@ -5524,6 +5524,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_terraformer_lambda_policy"
         "ec2:DescribeInstanceCreditSpecifications",
         "ec2:DescribeInstances",
         "ec2:DescribeInstanceTypes",
+        "ec2:DescribeNetworkInterfaces",
         "ec2:DescribeTags",
         "ec2:DescribeVolumes"
       ],
