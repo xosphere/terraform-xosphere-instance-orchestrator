@@ -1698,7 +1698,7 @@ resource "aws_iam_role" "instance_orchestrator_launcher_lambda_role" {
   ]
 }
 EOF
-  managed_policy_arns = [ aws_iam_policy.run_instances_managed_policy.arn, aws_iam_policy.launcher_managed_policy.arn ]
+  managed_policy_arns = [ aws_iam_policy.run_instances_managed_policy.arn, aws_iam_policy.create_fleet_managed_policy.arn, aws_iam_policy.launcher_managed_policy.arn ]
   name = "xosphere-instance-orchestrator-launcher-role"
   path = "/"
   tags = var.tags
@@ -4625,6 +4625,48 @@ resource "aws_iam_policy" "run_instances_managed_policy" {
       "Resource": [
         "arn:*:ssm:*::parameter/aws/*"
       ]
+    },
+    {
+      "Sid": "AllowCreateTransientLaunchTemplate",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateLaunchTemplate"
+      ],
+      "Resource": "arn:*:ec2:*:*:launch-template/*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestTag/xosphere.io/instance-orchestrator/transient-fleet": "true"
+        }
+      }
+    },
+    {
+      "Sid": "AllowCreateTagsOnTransientLaunchTemplate",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags"
+      ],
+      "Resource": "arn:*:ec2:*:*:launch-template/*",
+      "Condition": {
+        "StringEquals": {
+          "ec2:CreateAction": "CreateLaunchTemplate"
+        },
+        "StringLike": {
+          "aws:RequestTag/xosphere.io/instance-orchestrator/transient-fleet": "true"
+        }
+      }
+    },
+    {
+      "Sid": "AllowDeleteTransientLaunchTemplate",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DeleteLaunchTemplate"
+      ],
+      "Resource": "arn:*:ec2:*:*:launch-template/*",
+      "Condition": {
+        "StringEquals": {
+          "ec2:ResourceTag/xosphere.io/instance-orchestrator/transient-fleet": "true"
+        }
+      }
     }
   ]
 }
@@ -5595,6 +5637,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_terraformer_lambda_policy"
         "ec2:DescribeInstanceCreditSpecifications",
         "ec2:DescribeInstances",
         "ec2:DescribeInstanceTypes",
+        "ec2:DescribeLaunchTemplates",
         "ec2:DescribeNetworkInterfaces",
         "ec2:DescribeTags",
         "ec2:DescribeVolumes"
