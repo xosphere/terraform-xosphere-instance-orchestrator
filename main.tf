@@ -4001,12 +4001,28 @@ resource "aws_lambda_event_source_mapping" "instance_orchestrator_dlq_handler_sq
   depends_on = [ aws_iam_role.instance_orchestrator_dlq_handler_role ]
 }
 
+resource "aws_lambda_event_source_mapping" "instance_orchestrator_dlq_handler_scheduler_sqs_trigger" {
+  batch_size = 1
+  enabled = true
+  event_source_arn = aws_sqs_queue.instance_orchestrator_schedule_dlq.arn
+  function_name = aws_lambda_function.instance_orchestrator_dlq_handler_lambda.arn
+  depends_on = [ aws_iam_role.instance_orchestrator_dlq_handler_role ]
+}
+
 resource "aws_lambda_permission" "instance_orchestrator_dlq_handler_lambda_permission" {
   action = "lambda:InvokeFunction"
   function_name = aws_lambda_function.instance_orchestrator_dlq_handler_lambda.arn
   principal = "sqs.amazonaws.com"
   source_arn = aws_sqs_queue.instance_orchestrator_launcher_dlq.arn
   statement_id = var.dlq_handler_lambda_permission_name_override == null ? "AllowSQSInvoke" : var.dlq_handler_lambda_permission_name_override
+}
+
+resource "aws_lambda_permission" "instance_orchestrator_dlq_handler_scheduler_lambda_permission" {
+  action = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.instance_orchestrator_dlq_handler_lambda.arn
+  principal = "sqs.amazonaws.com"
+  source_arn = aws_sqs_queue.instance_orchestrator_schedule_dlq.arn
+  statement_id = "AllowSchedulerDLQSQSInvoke"
 }
 
 resource "aws_iam_role" "instance_orchestrator_dlq_handler_role" {
