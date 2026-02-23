@@ -82,6 +82,18 @@ variable "ami_cleaner_cron_schedule" {
   default = "7 10 * * ? *"
 }
 
+variable "ami_cleaner_max_images_to_retain" {
+  description = "Max number of images in a chain of instance replacements to retain"
+  type    = number
+  default = 3
+}
+
+variable "ami_cleaner_orphaned_image_retention_days" {
+  description = "Number of days to retain images for instances that no longer exist before deleting them"
+  type    = number
+  default = 30
+}
+
 variable "io_launcher_memory_size" {
   description = "Memory size allocated to Lambda"
   default = 256
