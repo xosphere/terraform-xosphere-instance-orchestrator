@@ -3770,6 +3770,8 @@ resource "aws_lambda_function" "instance_orchestrator_ami_cleaner_lambda" {
   environment {
     variables = {
       REGIONS = local.regions
+      MAX_IMAGES_TO_RETAIN = var.ami_cleaner_max_images_to_retain
+      ORPHANED_IMAGE_RETENTION_DAYS = var.ami_cleaner_orphaned_image_retention_days
     }
   }
   function_name = "xosphere-instance-orchestrator-ami-cleaner"
