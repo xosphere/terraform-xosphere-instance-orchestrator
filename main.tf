@@ -908,9 +908,8 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
       "Action": [
         "ec2:CreateTags",
         "ec2:DeleteTags",
-        "ec2:TerminateInstances",
-        "ec2:ModifyNetworkInterfaceAttribute"
-	    ],
+        "ec2:TerminateInstances"
+      ],
       "Resource": "*",
       "Condition": {
         "StringLike": {
@@ -924,9 +923,8 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
       "Action": [
         "ec2:CreateTags",
         "ec2:DeleteTags",
-        "ec2:TerminateInstances",
-        "ec2:ModifyNetworkInterfaceAttribute"
-	    ],
+        "ec2:TerminateInstances"
+      ],
       "Resource": "*",
       "Condition": {
         "StringLike": {
@@ -934,6 +932,43 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
         }
       }
     },
+%{ if var.enhanced_security_tag_restrictions }
+    {
+      "Sid": "AllowModifyNetworkInterfaceAttributeSlashes",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:ModifyNetworkInterfaceAttribute"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/authorized": "true"
+        }
+      }
+    },
+    {
+      "Sid": "AllowModifyNetworkInterfaceAttributeColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:ModifyNetworkInterfaceAttribute"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:authorized": "true"
+        }
+      }
+    },
+%{ else }
+    {
+      "Sid": "AllowModifyNetworkInterfaceAttribute",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:ModifyNetworkInterfaceAttribute"
+      ],
+      "Resource": "*"
+    },
+%{ endif }
     {
       "Sid": "AllowEcsClusterOperations",
       "Effect": "Allow",
@@ -2062,8 +2097,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
         "ec2:DeleteTags",
         "ec2:StartInstances",
         "ec2:StopInstances",
-        "ec2:TerminateInstances",
-        "ec2:ModifyNetworkInterfaceAttribute"
+        "ec2:TerminateInstances"
       ],
       "Resource": "*",
       "Condition": {
@@ -2079,8 +2113,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
         "ec2:DeleteTags",
         "ec2:StartInstances",
         "ec2:StopInstances",
-        "ec2:TerminateInstances",
-        "ec2:ModifyNetworkInterfaceAttribute"
+        "ec2:TerminateInstances"
       ],
       "Resource": "*",
       "Condition": {
@@ -2089,6 +2122,43 @@ resource "aws_iam_role_policy" "instance_orchestrator_launcher_lambda_policy" {
         }
       }
     },
+%{ if var.enhanced_security_tag_restrictions }
+    {
+      "Sid": "AllowModifyNetworkInterfaceAttributeSlashes",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:ModifyNetworkInterfaceAttribute"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/authorized": "true"
+        }
+      }
+    },
+    {
+      "Sid": "AllowModifyNetworkInterfaceAttributeColons",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:ModifyNetworkInterfaceAttribute"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringLike": {
+          "aws:ResourceTag/xosphere:instance-orchestrator:authorized": "true"
+        }
+      }
+    },
+%{ else }
+    {
+      "Sid": "AllowModifyNetworkInterfaceAttribute",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:ModifyNetworkInterfaceAttribute"
+      ],
+      "Resource": "*"
+    },
+%{ endif }
     {
       "Sid": "AllowPassRoleToEc2Instances",
       "Effect": "Allow",
