@@ -6022,28 +6022,7 @@ output "xosphere_version" {
   value = local.version
 }
 
-//── Option B: Event-Driven Replacement ────────────────────────────────────
-resource "aws_sqs_queue" "xosphere_event_driven_replacement_queue" {
-  name                       = "xosphere-event-driven-replacement-queue"
-  visibility_timeout_seconds = 60
-  tags                       = var.tags
-}
-
-resource "aws_sqs_queue_policy" "xosphere_event_driven_replacement_queue_policy" {
-  queue_url = aws_sqs_queue.xosphere_event_driven_replacement_queue.id
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect    = "Allow"
-        Principal = { Service = "events.amazonaws.com" }
-        Action    = "sqs:SendMessage"
-        Resource  = aws_sqs_queue.xosphere_event_driven_replacement_queue.arn
-      }
-    ]
-  })
-}
-
+//── Event-Driven Replacement (EventBridge → Lambda) ────────────────────────────────────
 resource "aws_cloudwatch_event_rule" "xosphere_event_driven_replacement_rule" {
   name        = "xosphere-event-driven-replacement-rule"
   description = "Triggers Spot replacement on ASG scale-out (EC2 Instance Launch Successful)"
@@ -6055,8 +6034,15 @@ resource "aws_cloudwatch_event_rule" "xosphere_event_driven_replacement_rule" {
 
 resource "aws_cloudwatch_event_target" "xosphere_event_driven_replacement_target" {
   rule      = aws_cloudwatch_event_rule.xosphere_event_driven_replacement_rule.name
-  arn       = aws_sqs_queue.xosphere_event_driven_replacement_queue.arn
-  target_id = "xosphere-event-driven-replacement-queue-target"
+  arn       = aws_lambda_function.xosphere_event_driven_replacement_lambda.arn
+  target_id = "xosphere-event-driven-replacement-lambda-target"
+}
+
+resource "aws_lambda_permission" "xosphere_event_driven_replacement_permission" {
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.xosphere_event_driven_replacement_lambda.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.xosphere_event_driven_replacement_rule.arn
 }
 
 resource "aws_cloudwatch_log_group" "xosphere_event_driven_replacement_log_group" {
@@ -6086,13 +6072,6 @@ resource "aws_lambda_function" "xosphere_event_driven_replacement_lambda" {
     }
   }
   depends_on = [aws_cloudwatch_log_group.xosphere_event_driven_replacement_log_group]
-}
-
-resource "aws_lambda_event_source_mapping" "xosphere_event_driven_replacement_mapping" {
-  batch_size       = 1
-  enabled          = true
-  event_source_arn = aws_sqs_queue.xosphere_event_driven_replacement_queue.arn
-  function_name    = aws_lambda_function.xosphere_event_driven_replacement_lambda.arn
 }
 
 resource "aws_iam_role" "xosphere_event_driven_replacement_role" {
@@ -6159,12 +6138,6 @@ resource "aws_iam_role_policy" "xosphere_event_driven_replacement_policy" {
         Resource = "${aws_s3_bucket.instance_state_s3_bucket.arn}/*"
       },
       {
-        Sid      = "AllowSqsConsume"
-        Effect   = "Allow"
-        Action   = ["sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:GetQueueAttributes"]
-        Resource = aws_sqs_queue.xosphere_event_driven_replacement_queue.arn
-      },
-      {
         Sid      = "AllowCloudWatchLogs"
         Effect   = "Allow"
         Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
@@ -6174,7 +6147,7 @@ resource "aws_iam_role_policy" "xosphere_event_driven_replacement_policy" {
   })
 }
 
-//── Option A: Lifecycle Hook Handler ──────────────────────────────────────
+//── Lifecycle Hook Handler (ASG lifecycle hook → Lambda) ──────────────────────────────────────
 resource "aws_sns_topic" "xosphere_scale_out_hook_topic" {
   name = "xosphere-scale-out-hook-topic"
   tags = var.tags
@@ -6219,7 +6192,7 @@ resource "aws_cloudwatch_log_group" "xosphere_lifecycle_hook_handler_log_group" 
 resource "aws_lambda_function" "xosphere_lifecycle_hook_handler_lambda" {
   s3_bucket     = local.s3_bucket
   s3_key        = "lifecycle-hook-handler-lambda-${local.version}.zip"
-  description   = "Xosphere Lifecycle Hook Handler (Option A Spot replacement)"
+  description   = "Xosphere Lifecycle Hook Handler"
   function_name = "xosphere-lifecycle-hook-handler"
   handler       = "bootstrap"
   memory_size   = 256
@@ -6357,11 +6330,11 @@ resource "aws_iam_role_policy" "xosphere_lifecycle_hook_policy" {
 }
 
 output "scale_out_hook_topic_arn" {
-  description = "SNS topic ARN to use as notification_target_arn on the Xosphere lifecycle hook (Option A)"
+  description = "SNS topic ARN to set as notification_target_arn on the Xosphere ASG lifecycle hook"
   value       = aws_sns_topic.xosphere_scale_out_hook_topic.arn
 }
 
 output "lifecycle_hook_role_arn" {
-  description = "IAM role ARN to use as role_arn on the Xosphere lifecycle hook (Option A)"
+  description = "IAM role ARN to set as role_arn on the Xosphere ASG lifecycle hook"
   value       = aws_iam_role.xosphere_lifecycle_hook_role.arn
 }
