@@ -851,7 +851,7 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
       ],
       "Resource": "arn:*:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/*",
       "Condition": {
-        "StringEquals": {"autoscaling:ResourceTag/xosphere.io/instance-orchestrator/enabled": "true"}
+        "StringLike": {"autoscaling:ResourceTag/xosphere.io/instance-orchestrator/enabled": ["*"]}
       }
     },
     {
@@ -869,7 +869,7 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
       ],
       "Resource": "arn:*:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/*",
       "Condition": {
-        "StringEquals": {"autoscaling:ResourceTag/xosphere:instance-orchestrator:enabled": "true"}
+        "StringLike": {"autoscaling:ResourceTag/xosphere:instance-orchestrator:enabled": ["*"]}
       }
     },
     {
@@ -1036,6 +1036,7 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
         "s3:GetObjectTagging",
         "s3:ListBucket",
         "s3:PutObject",
+        "s3:DeleteObject",
         "s3:PutObjectTagging"
       ],
       "Resource": [
@@ -1317,8 +1318,8 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
       ],
       "Resource": "arn:*:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/*",
       "Condition": {
-        "StringEquals": {
-          "autoscaling:ResourceTag/xosphere.io/instance-orchestrator/enabled": "true"
+        "StringLike": {
+          "autoscaling:ResourceTag/xosphere.io/instance-orchestrator/enabled": ["*"]
         }
       }
     },
@@ -1339,8 +1340,8 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
       ],
       "Resource": "arn:*:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/*",
       "Condition": {
-        "StringEquals": {
-          "autoscaling:ResourceTag/xosphere:instance-orchestrator:enabled": "true"
+        "StringLike": {
+          "autoscaling:ResourceTag/xosphere:instance-orchestrator:enabled": ["*"]
         }
       }
     },
@@ -5855,8 +5856,8 @@ resource "aws_iam_role_policy" "instance_orchestrator_attacher_lambda_policy" {
       ],
       "Resource": "arn:*:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/*",
       "Condition": {
-        "StringEquals": {
-          "autoscaling:ResourceTag/xosphere.io/instance-orchestrator/enabled": "true"
+        "StringLike": {
+          "autoscaling:ResourceTag/xosphere.io/instance-orchestrator/enabled": ["*"]
         }
       }
     },
@@ -5875,8 +5876,8 @@ resource "aws_iam_role_policy" "instance_orchestrator_attacher_lambda_policy" {
       ],
       "Resource": "arn:*:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/*",
       "Condition": {
-        "StringEquals": {
-          "autoscaling:ResourceTag/xosphere:instance-orchestrator:enabled": "true"
+        "StringLike": {
+          "autoscaling:ResourceTag/xosphere:instance-orchestrator:enabled": ["*"]
         }
       }
     },
