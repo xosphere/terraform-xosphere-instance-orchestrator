@@ -4507,9 +4507,7 @@ resource "aws_iam_policy" "run_instances_managed_policy" {
         "ec2:RunInstances"
       ],
       "Resource": [
-        "arn:*:ec2:*:*:instance/*",
-        "arn:*:ec2:*:*:network-interface/*",
-        "arn:*:ec2:*:*:volume/*"
+        "arn:*:ec2:*:*:instance/*"
       ],
       "Condition": {
         "StringLike": {
@@ -4524,9 +4522,7 @@ resource "aws_iam_policy" "run_instances_managed_policy" {
         "ec2:RunInstances"
       ],
       "Resource": [
-        "arn:*:ec2:*:*:instance/*",
-        "arn:*:ec2:*:*:network-interface/*",
-        "arn:*:ec2:*:*:volume/*"
+        "arn:*:ec2:*:*:instance/*"
       ],
       "Condition": {
         "StringLike": {
@@ -4541,9 +4537,7 @@ resource "aws_iam_policy" "run_instances_managed_policy" {
         "ec2:RunInstances"
       ],
       "Resource": [
-        "arn:*:ec2:*:*:instance/*",
-        "arn:*:ec2:*:*:network-interface/*",
-        "arn:*:ec2:*:*:volume/*"
+        "arn:*:ec2:*:*:instance/*"
       ],
       "Condition": {
         "StringLike": {
@@ -4558,15 +4552,24 @@ resource "aws_iam_policy" "run_instances_managed_policy" {
         "ec2:RunInstances"
       ],
       "Resource": [
-        "arn:*:ec2:*:*:instance/*",
-        "arn:*:ec2:*:*:network-interface/*",
-        "arn:*:ec2:*:*:volume/*"
+        "arn:*:ec2:*:*:instance/*"
       ],
       "Condition": {
         "StringLike": {
           "aws:RequestTag/xosphere:instance-orchestrator:xogroup-name": ["*"]
         }
       }
+    },
+    {
+      "Sid": "AllowEc2RunInstancesNetworkAndVolume",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:RunInstances"
+      ],
+      "Resource": [
+        "arn:*:ec2:*:*:network-interface/*",
+        "arn:*:ec2:*:*:volume/*"
+      ]
     },
     {
       "Sid": "AllowCreateTagsOnRunInstancesOnEnabledSlashes",
