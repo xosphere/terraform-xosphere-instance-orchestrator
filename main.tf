@@ -185,6 +185,19 @@ resource "aws_s3_bucket_lifecycle_configuration" "instance_state_s3_bucket_lifec
       days = 730
     }
   }
+
+  rule {
+    id     = "ExpireEDRClaims"
+    status = "Enabled"
+
+    filter {
+      prefix = "_edr_claims/"
+    }
+
+    expiration {
+      days = 1
+    }
+  }
 }
 
 resource "aws_s3_bucket_policy" "instance_state_s3_bucket_policy" {
@@ -6057,11 +6070,11 @@ resource "aws_lambda_function" "xosphere_event_driven_replacement_lambda" {
   description   = "Xosphere Event-Driven Spot Replacement"
   function_name = "xosphere-event-driven-replacement"
   handler       = "bootstrap"
-  memory_size   = 256
+  memory_size   = 512
   role          = aws_iam_role.xosphere_event_driven_replacement_role.arn
   runtime       = "provided.al2023"
   architectures = ["arm64"]
-  timeout       = 30
+  timeout       = 900
   tags          = var.tags
   environment {
     variables = {
@@ -6100,9 +6113,13 @@ resource "aws_iam_role_policy" "xosphere_event_driven_replacement_policy" {
         Sid    = "AllowReadOnlyDescribes"
         Effect = "Allow"
         Action = [
+          "ec2:DescribeAvailabilityZones",
+          "ec2:DescribeImages",
           "ec2:DescribeInstances",
           "ec2:DescribeLaunchTemplates",
           "ec2:DescribeLaunchTemplateVersions",
+          "ec2:DescribeSpotPriceHistory",
+          "ec2:DescribeSubnets",
           "ec2:DescribeTags",
           "autoscaling:DescribeAutoScalingGroups",
           "autoscaling:DescribeLifecycleHooks",
@@ -6116,13 +6133,16 @@ resource "aws_iam_role_policy" "xosphere_event_driven_replacement_policy" {
         Resource = "*"
       },
       {
-        Sid    = "AllowAsgMutations"
+        Sid    = "AllowAsgMutationsSlashes"
         Effect = "Allow"
         Action = [
           "autoscaling:AttachInstances",
           "autoscaling:TerminateInstanceInAutoScalingGroup",
           "autoscaling:SuspendProcesses",
           "autoscaling:ResumeProcesses",
+          "autoscaling:UpdateAutoScalingGroup",
+          "autoscaling:CreateOrUpdateTags",
+          "autoscaling:DeleteTags",
         ]
         Resource = "arn:aws:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/*"
         Condition = {
@@ -6132,10 +6152,35 @@ resource "aws_iam_role_policy" "xosphere_event_driven_replacement_policy" {
         }
       },
       {
-        Sid      = "AllowS3InstanceState"
+        Sid    = "AllowAsgMutationsColons"
+        Effect = "Allow"
+        Action = [
+          "autoscaling:AttachInstances",
+          "autoscaling:TerminateInstanceInAutoScalingGroup",
+          "autoscaling:SuspendProcesses",
+          "autoscaling:ResumeProcesses",
+          "autoscaling:UpdateAutoScalingGroup",
+          "autoscaling:CreateOrUpdateTags",
+          "autoscaling:DeleteTags",
+        ]
+        Resource = "arn:aws:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/*"
+        Condition = {
+          StringEquals = {
+            "autoscaling:ResourceTag/xosphere:instance-orchestrator:enabled" = "true"
+          }
+        }
+      },
+      {
+        Sid      = "AllowS3InstanceStateObjects"
         Effect   = "Allow"
         Action   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
         Resource = "${aws_s3_bucket.instance_state_s3_bucket.arn}/*"
+      },
+      {
+        Sid      = "AllowS3InstanceStateBucket"
+        Effect   = "Allow"
+        Action   = ["s3:ListBucket"]
+        Resource = aws_s3_bucket.instance_state_s3_bucket.arn
       },
       {
         Sid      = "AllowCloudWatchLogs"
@@ -6195,11 +6240,11 @@ resource "aws_lambda_function" "xosphere_lifecycle_hook_handler_lambda" {
   description   = "Xosphere Lifecycle Hook Handler"
   function_name = "xosphere-lifecycle-hook-handler"
   handler       = "bootstrap"
-  memory_size   = 256
+  memory_size   = 512
   role          = aws_iam_role.xosphere_lifecycle_hook_handler_role.arn
   runtime       = "provided.al2023"
   architectures = ["arm64"]
-  timeout       = 90
+  timeout       = 900
   tags          = var.tags
   environment {
     variables = {
@@ -6244,9 +6289,13 @@ resource "aws_iam_role_policy" "xosphere_lifecycle_hook_handler_policy" {
         Sid    = "AllowReadOnlyDescribes"
         Effect = "Allow"
         Action = [
+          "ec2:DescribeAvailabilityZones",
+          "ec2:DescribeImages",
           "ec2:DescribeInstances",
           "ec2:DescribeLaunchTemplates",
           "ec2:DescribeLaunchTemplateVersions",
+          "ec2:DescribeSpotPriceHistory",
+          "ec2:DescribeSubnets",
           "ec2:DescribeTags",
           "autoscaling:DescribeAutoScalingGroups",
           "autoscaling:DescribeLifecycleHooks",
@@ -6260,7 +6309,7 @@ resource "aws_iam_role_policy" "xosphere_lifecycle_hook_handler_policy" {
         Resource = "*"
       },
       {
-        Sid    = "AllowAsgMutations"
+        Sid    = "AllowAsgMutationsSlashes"
         Effect = "Allow"
         Action = [
           "autoscaling:AttachInstances",
@@ -6268,6 +6317,9 @@ resource "aws_iam_role_policy" "xosphere_lifecycle_hook_handler_policy" {
           "autoscaling:SuspendProcesses",
           "autoscaling:ResumeProcesses",
           "autoscaling:CompleteLifecycleAction",
+          "autoscaling:UpdateAutoScalingGroup",
+          "autoscaling:CreateOrUpdateTags",
+          "autoscaling:DeleteTags",
         ]
         Resource = "arn:aws:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/*"
         Condition = {
@@ -6277,10 +6329,36 @@ resource "aws_iam_role_policy" "xosphere_lifecycle_hook_handler_policy" {
         }
       },
       {
-        Sid      = "AllowS3InstanceState"
+        Sid    = "AllowAsgMutationsColons"
+        Effect = "Allow"
+        Action = [
+          "autoscaling:AttachInstances",
+          "autoscaling:TerminateInstanceInAutoScalingGroup",
+          "autoscaling:SuspendProcesses",
+          "autoscaling:ResumeProcesses",
+          "autoscaling:CompleteLifecycleAction",
+          "autoscaling:UpdateAutoScalingGroup",
+          "autoscaling:CreateOrUpdateTags",
+          "autoscaling:DeleteTags",
+        ]
+        Resource = "arn:aws:autoscaling:*:*:autoScalingGroup:*:autoScalingGroupName/*"
+        Condition = {
+          StringEquals = {
+            "autoscaling:ResourceTag/xosphere:instance-orchestrator:enabled" = "true"
+          }
+        }
+      },
+      {
+        Sid      = "AllowS3InstanceStateObjects"
         Effect   = "Allow"
         Action   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
         Resource = "${aws_s3_bucket.instance_state_s3_bucket.arn}/*"
+      },
+      {
+        Sid      = "AllowS3InstanceStateBucket"
+        Effect   = "Allow"
+        Action   = ["s3:ListBucket"]
+        Resource = aws_s3_bucket.instance_state_s3_bucket.arn
       },
       {
         Sid      = "AllowSqsConsume"
