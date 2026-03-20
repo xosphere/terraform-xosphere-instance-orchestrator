@@ -494,6 +494,42 @@ variable "ignore_lb_health_check" {
   default     = false
 }
 
+variable "enable_fargate_optimization" {
+  type        = bool
+  default     = false
+  description = "Enable Fargate Spot optimization for tagged ECS services"
+}
+
+variable "enable_enhanced_fargate_security" {
+  type        = bool
+  default     = false
+  description = "Require enabled tag on tasks for StopTask"
+}
+
+variable "fargate_shadow_manager_lambda_memory_size" {
+  type        = number
+  default     = 256
+  description = "Memory size for the Fargate Shadow Manager Lambda"
+}
+
+variable "fargate_shadow_manager_lambda_timeout" {
+  type        = number
+  default     = 300
+  description = "Timeout for the Fargate Shadow Manager Lambda"
+}
+
+variable "fargate_terminator_lambda_memory_size" {
+  type        = number
+  default     = 256
+  description = "Memory size for the Fargate Terminator Lambda"
+}
+
+variable "fargate_terminator_lambda_timeout" {
+  type        = number
+  default     = 300
+  description = "Timeout for the Fargate Terminator Lambda"
+}
+
 
 
 

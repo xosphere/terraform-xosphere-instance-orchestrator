@@ -428,6 +428,8 @@ resource "aws_lambda_function" "xosphere_event_router_lambda" {
       SCHEDULER_CWE_QUEUE_URL                                     = aws_sqs_queue.instance_orchestrator_scheduler_cloudwatch_event_queue.id
       XOGROUP_ENABLER_QUEUE_URL                                   = aws_sqs_queue.instance_orchestrator_xogroup_enabler_queue.id
       GROUP_INSPECTOR_QUEUE_URL                                   = aws_sqs_queue.instance_orchestrator_group_inspector_queue.id
+      FARGATE_SHADOW_MANAGER_QUEUE_URL                            = var.enable_fargate_optimization ? aws_sqs_queue.xosphere_fargate_shadow_manager_queue[0].id : ""
+      FARGATE_TERMINATOR_QUEUE_URL                                = var.enable_fargate_optimization ? aws_sqs_queue.xosphere_fargate_terminator_queue[0].id : ""
       ENHANCER_MODE                                               = "false"
       ENHANCER_SQS_QUEUE_URL                                      = aws_sqs_queue.instance_orchestrator_event_router_enhancer_queue.id
       ORGANIZATION_EC2_STATE_CHANGE_EVENT_COLLECTOR_SQS_QUEUE_URL = local.organization_management_account_enabled ? join("", ["https://sqs.", var.management_account_region, ".amazonaws.com/", var.management_aws_account_id, "/", local.wellknown__xosphere_organization_instance_state_event_collector_queue_name]) : null
@@ -581,6 +583,10 @@ resource "aws_iam_role_policy" "xosphere_event_router_iam_role_policy" {
         "${aws_sqs_queue.instance_orchestrator_group_inspector_queue.arn}",
         "${aws_sqs_queue.instance_orchestrator_event_router_queue.arn}",
         "${aws_sqs_queue.instance_orchestrator_event_router_enhancer_queue.arn}"
+%{if var.enable_fargate_optimization}
+        ,"${aws_sqs_queue.xosphere_fargate_shadow_manager_queue[0].arn}"
+        ,"${aws_sqs_queue.xosphere_fargate_terminator_queue[0].arn}"
+%{endif}
 %{if local.organization_management_account_enabled}
         ,"${join("", ["arn:*:sqs:", var.management_account_region, ":", var.management_aws_account_id, ":", local.wellknown__xosphere_organization_instance_state_event_collector_queue_name])}"
 %{endif}
@@ -983,15 +989,6 @@ resource "aws_iam_role_policy" "xosphere_terminator_policy" {
     },
 %{endif}
     {
-      "Sid": "AllowEcsClusterOperations",
-      "Effect": "Allow",
-      "Action": [
-        "ecs:ListContainerInstances"
-      ],
-      "Resource": "arn:*:ecs:*:*:cluster/*"
-
-    },
-    {
       "Sid": "AllowPassRoleOnXosphereRolesToXosphereLambdaFunctions",
       "Effect": "Allow",
       "Action": [
@@ -1214,6 +1211,8 @@ resource "aws_lambda_function" "xosphere_instance_orchestrator_lambda" {
       ORGANIZATION_REGION                = local.organization_management_account_enabled ? var.management_account_region : null
       ENABLE_CODEDEPLOY                  = var.enable_code_deploy_integration
       IGNORE_LB_HEALTH_CHECK             = var.ignore_lb_health_check
+      ENABLE_FARGATE_OPTIMIZATION        = var.enable_fargate_optimization
+      FARGATE_SHADOW_MANAGER_NAME         = var.enable_fargate_optimization ? aws_lambda_function.xosphere_fargate_shadow_manager_lambda[0].function_name : ""
     }
   }
   function_name                  = "xosphere-instance-orchestrator-lambda"
@@ -1297,6 +1296,21 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
       ],
       "Resource": "*"
     },
+    {
+      "Sid": "AllowEcsReadOperations",
+      "Effect": "Allow",
+      "Action": [
+        "ecs:ListClusters",
+        "ecs:ListServices",
+        "ecs:ListTasks",
+        "ecs:ListTagsForResource",
+        "ecs:DescribeClusters",
+        "ecs:DescribeServices",
+        "ecs:DescribeTasks",
+        "ecs:DescribeTaskDefinition"
+      ],
+      "Resource": "*"
+    },
 %{if var.enable_code_deploy_integration}
     {
       "Sid": "AllowCodeDeployOperations",
@@ -1367,14 +1381,6 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy" {
       "Condition": {
         "StringLike": {"cloudwatch:namespace": ["xosphere.io/instance-orchestrator/*"]}
       }
-    },
-    {
-      "Sid": "AllowEcsClusterReadOperations",
-      "Effect": "Allow",
-      "Action": [
-        "ecs:ListContainerInstances"
-	  ],
-      "Resource": "arn:*:ecs:*:*:cluster/*"
     },
     {
       "Sid": "AllowPassRoleOnXosphereRolesToXosphereLambdaFunctions",
@@ -1617,14 +1623,6 @@ resource "aws_iam_role_policy" "xosphere_instance_orchestrator_policy_additional
         "elasticloadbalancing:DeregisterTargets" %{if false} # # should use ResourceTag 'authorized', but no Condition Key currently available in IAM %{endif}
 	  ],
       "Resource": "*"
-    },
-    {
-      "Sid": "AllowEcsClusterUpdateOperations",
-      "Effect": "Allow",
-      "Action": [
-        "ecs:DeregisterContainerInstance" %{if false} # should use ResourceTag 'authorized', but no Condition Key currently available in IAM %{endif}
-  	  ],
-      "Resource": "arn:*:ecs:*:*:cluster/*"
     },
     {
       "Sid": "AllowAutoScalingOperationsOnEksNodeGroupsSlashes",
@@ -6404,6 +6402,505 @@ resource "aws_iam_role_policy" "xosphere_lifecycle_hook_policy" {
         Resource = aws_sns_topic.xosphere_scale_out_hook_topic.arn
       }
     ]
+  })
+}
+
+//── Fargate SQS Queues ────────────────────────────────────────────────────────
+
+resource "aws_sqs_queue" "xosphere_fargate_shadow_manager_dlq" {
+  count                      = var.enable_fargate_optimization ? 1 : 0
+  name                       = "xosphere-fargate-shadow-manager-dlq"
+  visibility_timeout_seconds = 300
+  kms_master_key_id          = var.enhanced_security_use_cmk ? aws_kms_key.xosphere_kms_key[0].arn : "alias/aws/sqs"
+  tags                       = var.tags
+}
+
+resource "aws_sqs_queue" "xosphere_fargate_shadow_manager_queue" {
+  count = var.enable_fargate_optimization ? 1 : 0
+  name  = "xosphere-fargate-shadow-manager"
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.xosphere_fargate_shadow_manager_dlq[0].arn
+    maxReceiveCount     = 5
+  })
+  visibility_timeout_seconds = 1020
+  kms_master_key_id          = var.enhanced_security_use_cmk ? aws_kms_key.xosphere_kms_key[0].arn : "alias/aws/sqs"
+  tags                       = var.tags
+}
+
+resource "aws_sqs_queue" "xosphere_fargate_terminator_dlq" {
+  count                      = var.enable_fargate_optimization ? 1 : 0
+  name                       = "xosphere-fargate-terminator-dlq"
+  visibility_timeout_seconds = 300
+  kms_master_key_id          = var.enhanced_security_use_cmk ? aws_kms_key.xosphere_kms_key[0].arn : "alias/aws/sqs"
+  tags                       = var.tags
+}
+
+resource "aws_sqs_queue" "xosphere_fargate_terminator_queue" {
+  count = var.enable_fargate_optimization ? 1 : 0
+  name  = "xosphere-fargate-terminator"
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.xosphere_fargate_terminator_dlq[0].arn
+    maxReceiveCount     = 5
+  })
+  visibility_timeout_seconds = 1020
+  kms_master_key_id          = var.enhanced_security_use_cmk ? aws_kms_key.xosphere_kms_key[0].arn : "alias/aws/sqs"
+  tags                       = var.tags
+}
+
+//── Fargate Shadow Manager (EventBridge → Lambda) ─────────────────────────────
+
+resource "aws_cloudwatch_log_group" "xosphere_fargate_shadow_manager_log_group" {
+  count             = var.enable_fargate_optimization ? 1 : 0
+  name              = "/aws/lambda/xosphere-fargate-shadow-manager"
+  retention_in_days = 30
+  tags              = var.tags
+}
+
+resource "aws_lambda_function" "xosphere_fargate_shadow_manager_lambda" {
+  count         = var.enable_fargate_optimization ? 1 : 0
+  s3_bucket     = local.s3_bucket
+  s3_key        = "fargate-shadow-manager-lambda-${local.version}.zip"
+  description   = "Xosphere Fargate Shadow Manager"
+  function_name = "xosphere-fargate-shadow-manager"
+  handler       = "bootstrap"
+  memory_size   = var.fargate_shadow_manager_lambda_memory_size
+  role          = aws_iam_role.xosphere_fargate_shadow_manager_role[0].arn
+  runtime       = "provided.al2023"
+  architectures = ["arm64"]
+  timeout       = var.fargate_shadow_manager_lambda_timeout
+  tags          = var.tags
+  environment {
+    variables = {
+      INSTANCE_STATE_S3_BUCKET    = aws_s3_bucket.instance_state_s3_bucket.id
+      ENABLE_FARGATE_OPTIMIZATION = var.enable_fargate_optimization
+      API_TOKEN_ARN               = local.api_token_arn
+      ENDPOINT_URL                = var.endpoint_url
+    }
+  }
+  depends_on = [aws_cloudwatch_log_group.xosphere_fargate_shadow_manager_log_group]
+}
+
+resource "aws_cloudwatch_event_rule" "xosphere_fargate_shadow_manager_placement_failure_rule" {
+  count       = var.enable_fargate_optimization ? 1 : 0
+  name        = "xosphere-fargate-shadow-placement-failure-rule"
+  description = "Triggers Fargate Shadow Manager on FARGATE_SPOT placement failure"
+  event_pattern = jsonencode({
+    source        = ["aws.ecs"]
+    "detail-type" = ["ECS Service Action"]
+    detail = {
+      eventName = ["SERVICE_TASK_PLACEMENT_FAILURE"]
+    }
+  })
+}
+
+resource "aws_cloudwatch_event_target" "xosphere_fargate_shadow_manager_placement_failure_target" {
+  count     = var.enable_fargate_optimization ? 1 : 0
+  rule      = aws_cloudwatch_event_rule.xosphere_fargate_shadow_manager_placement_failure_rule[0].name
+  arn       = aws_lambda_function.xosphere_fargate_shadow_manager_lambda[0].arn
+  target_id = "xosphere-fargate-shadow-placement-failure-target"
+}
+
+resource "aws_lambda_permission" "xosphere_fargate_shadow_manager_placement_failure_permission" {
+  count         = var.enable_fargate_optimization ? 1 : 0
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.xosphere_fargate_shadow_manager_lambda[0].function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.xosphere_fargate_shadow_manager_placement_failure_rule[0].arn
+}
+
+resource "aws_cloudwatch_event_rule" "xosphere_fargate_shadow_manager_spot_running_rule" {
+  count       = var.enable_fargate_optimization ? 1 : 0
+  name        = "xosphere-fargate-shadow-spot-running-rule"
+  description = "Triggers Fargate Shadow Manager when a FARGATE_SPOT task reaches RUNNING (Spot recovery)"
+  event_pattern = jsonencode({
+    source        = ["aws.ecs"]
+    "detail-type" = ["ECS Task State Change"]
+    detail = {
+      lastStatus           = ["RUNNING"]
+      capacityProviderName = ["FARGATE_SPOT"]
+    }
+  })
+}
+
+resource "aws_cloudwatch_event_target" "xosphere_fargate_shadow_manager_spot_running_target" {
+  count     = var.enable_fargate_optimization ? 1 : 0
+  rule      = aws_cloudwatch_event_rule.xosphere_fargate_shadow_manager_spot_running_rule[0].name
+  arn       = aws_lambda_function.xosphere_fargate_shadow_manager_lambda[0].arn
+  target_id = "xosphere-fargate-shadow-spot-running-target"
+}
+
+resource "aws_lambda_permission" "xosphere_fargate_shadow_manager_spot_running_permission" {
+  count         = var.enable_fargate_optimization ? 1 : 0
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.xosphere_fargate_shadow_manager_lambda[0].function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.xosphere_fargate_shadow_manager_spot_running_rule[0].arn
+}
+
+resource "aws_lambda_event_source_mapping" "xosphere_fargate_shadow_manager_sqs_event_source_mapping" {
+  count            = var.enable_fargate_optimization ? 1 : 0
+  batch_size       = 1
+  enabled          = true
+  event_source_arn = aws_sqs_queue.xosphere_fargate_shadow_manager_queue[0].arn
+  function_name    = aws_lambda_function.xosphere_fargate_shadow_manager_lambda[0].arn
+  depends_on       = [aws_iam_role.xosphere_fargate_shadow_manager_role]
+}
+
+resource "aws_lambda_permission" "xosphere_fargate_shadow_manager_sqs_permission" {
+  count         = var.enable_fargate_optimization ? 1 : 0
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.xosphere_fargate_shadow_manager_lambda[0].function_name
+  principal     = "sqs.amazonaws.com"
+  source_arn    = aws_sqs_queue.xosphere_fargate_shadow_manager_queue[0].arn
+}
+
+resource "aws_iam_role" "xosphere_fargate_shadow_manager_role" {
+  count = var.enable_fargate_optimization ? 1 : 0
+  name  = "xosphere-fargate-shadow-manager-role"
+  path  = "/"
+  tags  = var.tags
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action    = "sts:AssumeRole"
+        Effect    = "Allow"
+        Principal = { Service = "lambda.amazonaws.com" }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "xosphere_fargate_shadow_manager_policy" {
+  count = var.enable_fargate_optimization ? 1 : 0
+  name  = "xosphere-fargate-shadow-manager-policy"
+  role  = aws_iam_role.xosphere_fargate_shadow_manager_role[0].id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowEcsReadOperations"
+        Effect = "Allow"
+        Action = [
+          "ecs:ListClusters",
+          "ecs:ListServices",
+          "ecs:ListTasks",
+          "ecs:ListTagsForResource",
+          "ecs:DescribeClusters",
+          "ecs:DescribeServices",
+          "ecs:DescribeTasks",
+          "ecs:DescribeTaskDefinition",
+        ]
+        Resource = "*"
+      },
+      {
+        Sid      = "AllowEcsUpdateServiceSlashes"
+        Effect   = "Allow"
+        Action   = ["ecs:UpdateService"]
+        Resource = "arn:*:ecs:*:*:service/*/*"
+        Condition = {
+          StringLike = {
+            "aws:ResourceTag/xosphere.io/instance-orchestrator/enabled" = "*"
+          }
+        }
+      },
+      {
+        Sid      = "AllowEcsUpdateServiceColons"
+        Effect   = "Allow"
+        Action   = ["ecs:UpdateService"]
+        Resource = "arn:*:ecs:*:*:service/*/*"
+        Condition = {
+          StringLike = {
+            "aws:ResourceTag/xosphere:instance-orchestrator:enabled" = "*"
+          }
+        }
+      },
+      {
+        Sid      = "AllowEcsCreateShadowService"
+        Effect   = "Allow"
+        Action   = ["ecs:CreateService"]
+        Resource = "arn:*:ecs:*:*:service/*/*"
+        Condition = {
+          StringLike = {
+            "aws:RequestTag/xosphere:instance-orchestrator:shadow-source" = "*"
+          }
+        }
+      },
+      {
+        Sid      = "AllowEcsDeleteShadowService"
+        Effect   = "Allow"
+        Action   = ["ecs:DeleteService"]
+        Resource = "arn:*:ecs:*:*:service/*/*"
+        Condition = {
+          StringLike = {
+            "aws:ResourceTag/xosphere:instance-orchestrator:shadow-source" = "*"
+          }
+        }
+      },
+      {
+        Sid      = "AllowEcsTagShadowService"
+        Effect   = "Allow"
+        Action   = ["ecs:TagResource"]
+        Resource = "arn:*:ecs:*:*:service/*/*"
+        Condition = {
+          StringLike = {
+            "aws:ResourceTag/xosphere:instance-orchestrator:shadow-source" = "*"
+          }
+        }
+      },
+      {
+        Sid    = "AllowAutoScalingOperations"
+        Effect = "Allow"
+        Action = [
+          "application-autoscaling:DescribeScalableTargets",
+          "application-autoscaling:RegisterScalableTarget",
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "AllowS3OperationsOnXosphereObjects"
+        Effect = "Allow"
+        Action = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:ListBucket"]
+        Resource = [
+          "${aws_s3_bucket.instance_state_s3_bucket.arn}/*",
+          aws_s3_bucket.instance_state_s3_bucket.arn,
+        ]
+      },
+      {
+        Sid      = "AllowLogOperationsOnXosphereLogGroups"
+        Effect   = "Allow"
+        Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
+        Resource = "arn:*:logs:*:*:log-group:/aws/lambda/xosphere-*"
+      },
+      {
+        Sid    = "AllowSqsOperationsOnFargateShadowManagerQueue"
+        Effect = "Allow"
+        Action = [
+          "sqs:ChangeMessageVisibility",
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes",
+          "sqs:ReceiveMessage",
+        ]
+        Resource = aws_sqs_queue.xosphere_fargate_shadow_manager_queue[0].arn
+      },
+      {
+        Sid      = "AllowSecretManagerOperations"
+        Effect   = "Allow"
+        Action   = ["secretsmanager:GetSecretValue"]
+        Resource = local.api_token_arn
+      },
+    ]
+  })
+}
+
+//── Fargate Terminator (EventBridge → Lambda) ─────────────────────────────────
+
+resource "aws_cloudwatch_log_group" "xosphere_fargate_terminator_log_group" {
+  count             = var.enable_fargate_optimization ? 1 : 0
+  name              = "/aws/lambda/xosphere-fargate-terminator"
+  retention_in_days = 30
+  tags              = var.tags
+}
+
+resource "aws_lambda_function" "xosphere_fargate_terminator_lambda" {
+  count         = var.enable_fargate_optimization ? 1 : 0
+  s3_bucket     = local.s3_bucket
+  s3_key        = "fargate-terminator-lambda-${local.version}.zip"
+  description   = "Xosphere Fargate Terminator"
+  function_name = "xosphere-fargate-terminator"
+  handler       = "bootstrap"
+  memory_size   = var.fargate_terminator_lambda_memory_size
+  role          = aws_iam_role.xosphere_fargate_terminator_role[0].arn
+  runtime       = "provided.al2023"
+  architectures = ["arm64"]
+  timeout       = var.fargate_terminator_lambda_timeout
+  tags          = var.tags
+  environment {
+    variables = {
+      INSTANCE_STATE_S3_BUCKET    = aws_s3_bucket.instance_state_s3_bucket.id
+      ENABLE_FARGATE_OPTIMIZATION = var.enable_fargate_optimization
+      API_TOKEN_ARN               = local.api_token_arn
+      ENDPOINT_URL                = var.endpoint_url
+    }
+  }
+  depends_on = [aws_cloudwatch_log_group.xosphere_fargate_terminator_log_group]
+}
+
+resource "aws_cloudwatch_event_rule" "xosphere_fargate_terminator_rule" {
+  count       = var.enable_fargate_optimization ? 1 : 0
+  name        = "xosphere-fargate-terminator-rule"
+  description = "Triggers Fargate Terminator on FARGATE_SPOT Spot interruption"
+  event_pattern = jsonencode({
+    source        = ["aws.ecs"]
+    "detail-type" = ["ECS Task State Change"]
+    detail = {
+      capacityProviderName = ["FARGATE_SPOT"]
+      stopCode             = ["SpotInterruption"]
+    }
+  })
+}
+
+resource "aws_cloudwatch_event_target" "xosphere_fargate_terminator_target" {
+  count     = var.enable_fargate_optimization ? 1 : 0
+  rule      = aws_cloudwatch_event_rule.xosphere_fargate_terminator_rule[0].name
+  arn       = aws_lambda_function.xosphere_fargate_terminator_lambda[0].arn
+  target_id = "xosphere-fargate-terminator-target"
+}
+
+resource "aws_lambda_permission" "xosphere_fargate_terminator_permission" {
+  count         = var.enable_fargate_optimization ? 1 : 0
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.xosphere_fargate_terminator_lambda[0].function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.xosphere_fargate_terminator_rule[0].arn
+}
+
+resource "aws_lambda_event_source_mapping" "xosphere_fargate_terminator_sqs_event_source_mapping" {
+  count            = var.enable_fargate_optimization ? 1 : 0
+  batch_size       = 1
+  enabled          = true
+  event_source_arn = aws_sqs_queue.xosphere_fargate_terminator_queue[0].arn
+  function_name    = aws_lambda_function.xosphere_fargate_terminator_lambda[0].arn
+  depends_on       = [aws_iam_role.xosphere_fargate_terminator_role]
+}
+
+resource "aws_lambda_permission" "xosphere_fargate_terminator_sqs_permission" {
+  count         = var.enable_fargate_optimization ? 1 : 0
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.xosphere_fargate_terminator_lambda[0].function_name
+  principal     = "sqs.amazonaws.com"
+  source_arn    = aws_sqs_queue.xosphere_fargate_terminator_queue[0].arn
+}
+
+resource "aws_iam_role" "xosphere_fargate_terminator_role" {
+  count = var.enable_fargate_optimization ? 1 : 0
+  name  = "xosphere-fargate-terminator-role"
+  path  = "/"
+  tags  = var.tags
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action    = "sts:AssumeRole"
+        Effect    = "Allow"
+        Principal = { Service = "lambda.amazonaws.com" }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "xosphere_fargate_terminator_policy" {
+  count = var.enable_fargate_optimization ? 1 : 0
+  name  = "xosphere-fargate-terminator-policy"
+  role  = aws_iam_role.xosphere_fargate_terminator_role[0].id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = concat(
+      [
+        {
+          Sid    = "AllowEcsReadOperations"
+          Effect = "Allow"
+          Action = [
+            "ecs:ListClusters",
+            "ecs:ListServices",
+            "ecs:ListTasks",
+            "ecs:ListTagsForResource",
+            "ecs:DescribeClusters",
+            "ecs:DescribeServices",
+            "ecs:DescribeTasks",
+            "ecs:DescribeTaskDefinition",
+          ]
+          Resource = "*"
+        },
+        {
+          Sid      = "AllowEcsUpdateServiceSlashes"
+          Effect   = "Allow"
+          Action   = ["ecs:UpdateService"]
+          Resource = "arn:*:ecs:*:*:service/*/*"
+          Condition = {
+            StringLike = {
+              "aws:ResourceTag/xosphere.io/instance-orchestrator/enabled" = "*"
+            }
+          }
+        },
+        {
+          Sid      = "AllowEcsUpdateServiceColons"
+          Effect   = "Allow"
+          Action   = ["ecs:UpdateService"]
+          Resource = "arn:*:ecs:*:*:service/*/*"
+          Condition = {
+            StringLike = {
+              "aws:ResourceTag/xosphere:instance-orchestrator:enabled" = "*"
+            }
+          }
+        },
+      ],
+      var.enable_enhanced_fargate_security ? [
+        {
+          Sid      = "AllowEcsStopTaskWithTagSlashes"
+          Effect   = "Allow"
+          Action   = ["ecs:StopTask"]
+          Resource = "arn:*:ecs:*:*:task/*/*"
+          Condition = {
+            StringLike = {
+              "aws:ResourceTag/xosphere.io/instance-orchestrator/enabled" = "*"
+            }
+          }
+        },
+        {
+          Sid      = "AllowEcsStopTaskWithTagColons"
+          Effect   = "Allow"
+          Action   = ["ecs:StopTask"]
+          Resource = "arn:*:ecs:*:*:task/*/*"
+          Condition = {
+            StringLike = {
+              "aws:ResourceTag/xosphere:instance-orchestrator:enabled" = "*"
+            }
+          }
+        },
+        ] : [
+        {
+          Sid      = "AllowEcsStopTask"
+          Effect   = "Allow"
+          Action   = ["ecs:StopTask"]
+          Resource = "arn:*:ecs:*:*:task/*/*"
+        },
+      ],
+      [
+        {
+          Sid    = "AllowS3OperationsOnXosphereObjects"
+          Effect = "Allow"
+          Action = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:ListBucket"]
+          Resource = [
+            "${aws_s3_bucket.instance_state_s3_bucket.arn}/*",
+            aws_s3_bucket.instance_state_s3_bucket.arn,
+          ]
+        },
+        {
+          Sid      = "AllowLogOperationsOnXosphereLogGroups"
+          Effect   = "Allow"
+          Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
+          Resource = "arn:*:logs:*:*:log-group:/aws/lambda/xosphere-*"
+        },
+        {
+          Sid    = "AllowSqsOperationsOnFargateTerminatorQueue"
+          Effect = "Allow"
+          Action = [
+            "sqs:ChangeMessageVisibility",
+            "sqs:DeleteMessage",
+            "sqs:GetQueueAttributes",
+            "sqs:ReceiveMessage",
+          ]
+          Resource = aws_sqs_queue.xosphere_fargate_terminator_queue[0].arn
+        },
+        {
+          Sid      = "AllowSecretManagerOperations"
+          Effect   = "Allow"
+          Action   = ["secretsmanager:GetSecretValue"]
+          Resource = local.api_token_arn
+        },
+      ],
+    )
   })
 }
 
