@@ -1684,11 +1684,11 @@ resource "aws_lambda_function" "xosphere_instance_orchestrator_launcher_lambda" 
   description = "Xosphere Instance Orchestrator Launcher"
   environment {
     variables = {
-      API_TOKEN_ARN            = local.api_token_arn
-      ENDPOINT_URL             = var.endpoint_url
-      INSTANCE_STATE_S3_BUCKET = aws_s3_bucket.instance_state_s3_bucket.id
-      SQS_QUEUE                = aws_sqs_queue.instance_orchestrator_launcher_queue.id
-      SQS_SNAPSHOT_QUEUE : aws_sqs_queue.instance_orchestrator_snapshot_queue.id
+      API_TOKEN_ARN                = local.api_token_arn
+      ENDPOINT_URL                 = var.endpoint_url
+      INSTANCE_STATE_S3_BUCKET     = aws_s3_bucket.instance_state_s3_bucket.id
+      SQS_QUEUE                    = aws_sqs_queue.instance_orchestrator_launcher_queue.id
+      SQS_SNAPSHOT_QUEUE           = aws_sqs_queue.instance_orchestrator_snapshot_queue.id
       HAS_GLOBAL_TERRAFORM_SETTING = local.has_global_terraform_settings ? "true" : "false"
       TERRAFORMER_LAMBDA_NAME      = aws_lambda_function.instance_orchestrator_terraformer_lambda.function_name
     }
@@ -3375,7 +3375,7 @@ resource "aws_lambda_function" "instance_orchestrator_snapshot_creator_lambda" {
     variables = {
       REGIONS                  = local.regions
       INSTANCE_STATE_S3_BUCKET = aws_s3_bucket.instance_state_s3_bucket.id
-      SQS_SNAPSHOT_QUEUE : aws_sqs_queue.instance_orchestrator_snapshot_queue.id
+      SQS_SNAPSHOT_QUEUE       = aws_sqs_queue.instance_orchestrator_snapshot_queue.id
     }
   }
   function_name = "xosphere-instance-orchestrator-snapshot-creator"
@@ -5793,8 +5793,9 @@ resource "aws_lambda_function" "instance_orchestrator_attacher_lambda" {
   description = "Xosphere Instance Orchestrator Attacher"
   environment {
     variables = {
-      API_TOKEN_ARN = local.api_token_arn
-      ENDPOINT_URL  = var.endpoint_url
+      API_TOKEN_ARN            = local.api_token_arn
+      ENDPOINT_URL             = var.endpoint_url
+      INSTANCE_STATE_S3_BUCKET = aws_s3_bucket.instance_state_s3_bucket.id
     }
   }
   function_name = "xosphere-instance-orchestrator-attacher"
