@@ -5733,7 +5733,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_terraformer_lambda_policy"
       "Resource": "*",
       "Condition": {
         "StringEquals": {
-          "dynamodb:ResourceTag/xosphere.io/instance-orchestrator/authorized": "true"
+          "aws:ResourceTag/xosphere.io/instance-orchestrator/authorized": "true"
         }
       }
     },
@@ -5750,7 +5750,7 @@ resource "aws_iam_role_policy" "instance_orchestrator_terraformer_lambda_policy"
       "Resource": "*",
       "Condition": {
         "StringEquals": {
-          "dynamodb:ResourceTag/xosphere:instance-orchestrator:authorized": "true"
+          "aws:ResourceTag/xosphere:instance-orchestrator:authorized": "true"
         }
       }
     },
