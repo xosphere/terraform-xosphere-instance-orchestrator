@@ -54,7 +54,7 @@ variable "lambda_cron_schedule" {
 
 variable "terminator_lambda_memory_size" {
   description = "Memory size allocated to Lambda"
-  default     = 128
+  default     = 1024
 }
 
 variable "terminator_lambda_timeout" {
