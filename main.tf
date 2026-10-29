@@ -6005,6 +6005,38 @@ resource "aws_iam_role_policy" "xosphere_support_access_policy" {
         "autoscaling:Describe*"
       ],
       "Resource": "*"
+    },
+    {
+      "Sid": "AllowReadOperationsOnXosphereQueues",
+      "Effect": "Allow",
+      "Action": [
+        "sqs:GetQueueAttributes",
+        "sqs:GetQueueUrl",
+        "sqs:ListDeadLetterSourceQueues"
+      ],
+      "Resource": "arn:aws:sqs:*:*:xosphere-*"
+    },
+    {
+      "Sid": "AllowListQueuesAndEventSourceMappings",
+      "Effect": "Allow",
+      "Action": [
+        "sqs:ListQueues",
+        "lambda:ListEventSourceMappings"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "AllowReadOperationsOnXosphereEventSourceMappings",
+      "Effect": "Allow",
+      "Action": [
+        "lambda:GetEventSourceMapping"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "ArnLike": {
+          "lambda:FunctionArn": "arn:aws:lambda:*:*:function:xosphere-*"
+        }
+      }
     }
   ]
 }
