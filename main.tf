@@ -3828,7 +3828,13 @@ resource "aws_lambda_event_source_mapping" "instance_orchestrator_group_inspecto
   enabled          = true
   event_source_arn = aws_sqs_queue.instance_orchestrator_group_inspector_queue.arn
   function_name    = aws_lambda_function.instance_orchestrator_group_inspector_lambda.arn
-  depends_on       = [aws_iam_role.instance_orchestrator_group_inspector_role]
+  # Bounds how many group-inspector invocations a backlog fans out to. A mapping that has been
+  # disabled for a while and is re-enabled on a queue holding days of EC2 state-change events
+  # would otherwise scale to hundreds of concurrent invocations and throttle the account's API.
+  scaling_config {
+    maximum_concurrency = 5
+  }
+  depends_on = [aws_iam_role.instance_orchestrator_group_inspector_role]
 }
 
 
