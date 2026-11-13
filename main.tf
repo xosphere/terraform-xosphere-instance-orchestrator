@@ -2895,6 +2895,16 @@ resource "aws_lambda_permission" "instance_orchestrator_budget_driver_lambda_per
   statement_id  = var.budget_driver_lambda_permission_name_override == null ? "AllowExecutionFromCloudWatch" : var.budget_driver_lambda_permission_name_override
 }
 
+# A run that times out is not retried, and an invocation Lambda had to hold back (throttled)
+# is dropped after a minute, before the next scheduled run (every two minutes, 90 s timeout).
+# So budget runs rarely overlap; the group locks make an overlap safe (ENG-2007).
+resource "aws_lambda_function_event_invoke_config" "instance_orchestrator_budget_driver_lambda_invoke_config" {
+  function_name                = aws_lambda_function.instance_orchestrator_budget_driver_lambda.function_name
+  maximum_retry_attempts       = 0
+  maximum_event_age_in_seconds = 60
+  qualifier                    = "$LATEST"
+}
+
 resource "aws_iam_role" "instance_orchestrator_budget_driver_lambda_role" {
   assume_role_policy  = <<EOF
 {
