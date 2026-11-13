@@ -368,7 +368,9 @@ resource "aws_sqs_queue" "instance_orchestrator_scheduler_cloudwatch_event_queue
 }
 
 resource "aws_sqs_queue" "xosphere_terminator_dlq" {
-  name                       = "xosphere-instance-orchestrator-terminator-dlq"
+  name = "xosphere-instance-orchestrator-terminator-dlq"
+  # The SQS maximum, so a message the alarm below reports is still there to inspect.
+  message_retention_seconds  = 1209600
   visibility_timeout_seconds = 300
   kms_master_key_id          = var.enhanced_security_use_cmk ? aws_kms_key.xosphere_kms_key[0].arn : "alias/aws/sqs"
   tags                       = var.tags
@@ -383,6 +385,60 @@ resource "aws_sqs_queue" "xosphere_terminator_queue" {
   visibility_timeout_seconds = 1020
   kms_master_key_id          = var.enhanced_security_use_cmk ? aws_kms_key.xosphere_kms_key[0].arn : "alias/aws/sqs"
   tags                       = var.tags
+}
+
+# A message here is an interruption or rebalance the terminator failed five times. It may have
+# left its Auto Scaling Group's capacity changed and nothing else reports it.
+#
+# The alarm watches the queue's depth going up, not its being non-empty: actions fire only on a
+# state change, so a depth alarm would report the first dead letter and then sit in ALARM through
+# every later one for as long as the first is kept. NumberOfMessagesSent can't be used: SQS
+# doesn't count messages its redrive policy moves into a dead-letter queue there. An empty,
+# untouched queue is inactive and reports no data, and its first data point after reactivating
+# can arrive up to 15 minutes late, so missing points count as the last value reported (or 0
+# before any), and the 15 minute window still holds a late increase. In-flight messages count
+# too, so a triage poll hiding them for the visibility timeout doesn't read as new ones when they
+# reappear. A message added and removed within one minute may go unseen; only manual action can
+# do that.
+resource "aws_cloudwatch_metric_alarm" "xosphere_terminator_dlq_alarm" {
+  alarm_name        = "xosphere-instance-orchestrator-terminator-dlq-new-messages"
+  alarm_description = "Xosphere Instance Orchestrator: a new message reached the terminator dead-letter queue xosphere-instance-orchestrator-terminator-dlq. Each is a Spot interruption or rebalance event the terminator failed five times; its Auto Scaling Group may be one instance short or over. Triage: poll the queue in the SQS console for the instance id, search the /aws/lambda/xosphere-terminator-lambda logs for it, and send both to Xosphere support. Redrive (Start DLQ redrive, to xosphere-instance-orchestrator-terminator) only on Xosphere support's advice: a replayed event can launch another replacement. Messages are kept 14 days. The alarm fires when the depth increases; further increases within 15 minutes are included in the same alarm. This alarm also fires when the queue's metrics resume after 6 or more idle hours (for example when the queue is opened in the console). Check each message's sent time before escalating."
+  metric_query {
+    id          = "depth"
+    return_data = false
+    metric {
+      namespace   = "AWS/SQS"
+      metric_name = "ApproximateNumberOfMessagesVisible"
+      dimensions  = { QueueName = aws_sqs_queue.xosphere_terminator_dlq.name }
+      period      = 60
+      stat        = "Maximum"
+    }
+  }
+  metric_query {
+    id          = "inflight"
+    return_data = false
+    metric {
+      namespace   = "AWS/SQS"
+      metric_name = "ApproximateNumberOfMessagesNotVisible"
+      dimensions  = { QueueName = aws_sqs_queue.xosphere_terminator_dlq.name }
+      period      = 60
+      stat        = "Maximum"
+    }
+  }
+  metric_query {
+    id          = "increase"
+    expression  = "DIFF(FILL(FILL(depth, REPEAT), 0) + FILL(inflight, 0))"
+    label       = "Increase in terminator dead-letter queue depth"
+    return_data = true
+  }
+  evaluation_periods  = 15
+  datapoints_to_alarm = 1
+  threshold           = 0
+  comparison_operator = "GreaterThanThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = var.alarm_notification_topic_arn == "" ? [] : [var.alarm_notification_topic_arn]
+  ok_actions          = var.alarm_notification_topic_arn == "" ? [] : [var.alarm_notification_topic_arn]
+  tags                = var.tags
 }
 
 resource "aws_sqs_queue" "instance_orchestrator_xogroup_enabler_dlq" {
@@ -777,6 +833,8 @@ resource "aws_lambda_function" "xosphere_terminator_lambda" {
   timeout       = var.terminator_lambda_timeout
   tags          = var.tags
   depends_on    = [aws_cloudwatch_log_group.xosphere_terminator_cloudwatch_log_group]
+
+  reserved_concurrent_executions = var.terminator_reserved_concurrency == 0 ? null : var.terminator_reserved_concurrency
 }
 
 resource "aws_iam_role" "xosphere_terminator_role" {
@@ -1163,7 +1221,16 @@ resource "aws_lambda_event_source_mapping" "xosphere_terminator_event_source_map
   enabled          = true
   event_source_arn = aws_sqs_queue.xosphere_terminator_queue.arn
   function_name    = aws_lambda_function.xosphere_terminator_lambda.arn
-  depends_on       = [aws_iam_role.xosphere_terminator_role]
+  # With a reservation, matches it, so the mapping never invokes past it. An invocation
+  # throttled at the reservation would return its message to the queue only after the
+  # visibility timeout, late and one receive closer to the dead-letter queue.
+  dynamic "scaling_config" {
+    for_each = var.terminator_reserved_concurrency == 0 ? [] : [var.terminator_reserved_concurrency]
+    content {
+      maximum_concurrency = scaling_config.value
+    }
+  }
+  depends_on = [aws_iam_role.xosphere_terminator_role]
 }
 
 resource "aws_lambda_permission" "xosphere_terminator_sqs_lambda_permission" {
@@ -5941,6 +6008,33 @@ resource "aws_lambda_permission" "instance_orchestrator_attacher_lambda_permissi
   principal     = "lambda.amazonaws.com"
   source_arn    = aws_lambda_function.xosphere_instance_orchestrator_lambda.arn
   statement_id  = var.instance_orchestrator_attacher_lambda_permission_name_override == null ? "AllowExecutionFromLambda" : var.instance_orchestrator_attacher_lambda_permission_name_override
+}
+
+# Bounds an attach request's life in Lambda's async queue to 15 minutes instead of the 6 hour
+# default. A backstop: ENG-2019 adds the attacher's own deadline.
+resource "aws_lambda_function_event_invoke_config" "instance_orchestrator_attacher_lambda_invoke_config" {
+  function_name                = aws_lambda_function.instance_orchestrator_attacher_lambda.function_name
+  maximum_event_age_in_seconds = 900
+  maximum_retry_attempts       = 2
+  qualifier                    = "$LATEST"
+}
+
+# An attach request Lambda gave up on - retries exhausted or too old - leaves a launched
+# replacement unattached.
+resource "aws_cloudwatch_metric_alarm" "instance_orchestrator_attacher_events_dropped_alarm" {
+  alarm_name          = "xosphere-instance-orchestrator-attacher-events-dropped"
+  alarm_description   = "Xosphere Instance Orchestrator: Lambda dropped attach requests after their retries or maximum age. Contact Xosphere support."
+  namespace           = "AWS/Lambda"
+  metric_name         = "AsyncEventsDropped"
+  dimensions          = { FunctionName = aws_lambda_function.instance_orchestrator_attacher_lambda.function_name }
+  statistic           = "Sum"
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = 0
+  comparison_operator = "GreaterThanThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = var.alarm_notification_topic_arn == "" ? [] : [var.alarm_notification_topic_arn]
+  tags                = var.tags
 }
 
 resource "aws_cloudwatch_log_group" "instance_orchestrator_attacher_cloudwatch_log_group" {
