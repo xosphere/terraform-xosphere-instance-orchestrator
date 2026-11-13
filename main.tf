@@ -6006,6 +6006,33 @@ resource "aws_iam_role_policy" "instance_orchestrator_attacher_lambda_policy" {
         "arn:aws:logs:*:*:log-group:/aws/lambda/xosphere-*",
         "arn:aws:logs:*:*:log-group:/aws/lambda/xosphere-*:log-stream:*"
       ]
+    },
+%{if var.enhanced_security_use_cmk}
+    {
+      "Sid": "AllowKmsCmk",
+      "Effect": "Allow",
+      "Action": [
+        "kms:GenerateDataKey",
+        "kms:Decrypt"
+      ],
+      "Resource": "${aws_kms_key.xosphere_kms_key[0].arn}"
+    },
+%{endif}
+    {
+      "Sid": "AllowS3OperationsOnXosphereObjects",
+      "Effect": "Allow",
+      "Action": [
+        "s3:DeleteObject",
+        "s3:GetObject",
+        "s3:ListBucket",
+        "s3:PutObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::xosphere-*/*",
+        "arn:aws:s3:::xosphere-*",
+        "${aws_s3_bucket.instance_state_s3_bucket.arn}",
+        "${aws_s3_bucket.instance_state_s3_bucket.arn}/*"
+      ]
     }
   ]
 }
