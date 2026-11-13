@@ -57,6 +57,22 @@ variable "terminator_lambda_memory_size" {
   default     = 1024
 }
 
+variable "terminator_reserved_concurrency" {
+  description = "Optional. Concurrency to reserve for the terminator Lambda, which handles Spot interruptions and rebalance recommendations. 0 (the default) reserves nothing; otherwise 2 to 1000. Reserving protects against other functions in the account using up the terminator's concurrency: a throttled invocation returns its interruption to the queue only after the 1020 second visibility timeout, past the 2 minute Spot notice, and after five receives sends it to the dead-letter queue. The same value caps how many terminator invocations run at once, and a rebalance holds its slot for many minutes while it waits for its replacement to attach, so size it above the peak number of concurrent rebalances plus interruptions; anything beyond the cap waits in the queue. Lambda keeps 100 of the account's concurrency unreserved and Instance Orchestrator already reserves 21, so the account's concurrency limit must be at least 121 plus this value (for example 171 for 50; the default limit is 1000)."
+  type        = number
+  default     = 0
+  validation {
+    condition     = var.terminator_reserved_concurrency == 0 || (var.terminator_reserved_concurrency >= 2 && var.terminator_reserved_concurrency <= 1000 && floor(var.terminator_reserved_concurrency) == var.terminator_reserved_concurrency)
+    error_message = "The terminator_reserved_concurrency value must be 0 (no reservation) or a whole number from 2 to 1000."
+  }
+}
+
+variable "alarm_notification_topic_arn" {
+  description = "Optional SNS topic ARN that Instance Orchestrator's CloudWatch alarms (terminator dead-letter queue not empty, attacher events dropped) notify. Leave empty to create the alarms without actions. A topic encrypted with a customer managed KMS key must let CloudWatch use the key."
+  type        = string
+  default     = ""
+}
+
 variable "terminator_lambda_timeout" {
   description = "Lambda function execution timeout"
   default     = 900
