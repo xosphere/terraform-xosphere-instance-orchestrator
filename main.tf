@@ -6006,6 +6006,22 @@ resource "aws_iam_role_policy" "instance_orchestrator_attacher_lambda_policy" {
         "arn:aws:logs:*:*:log-group:/aws/lambda/xosphere-*",
         "arn:aws:logs:*:*:log-group:/aws/lambda/xosphere-*:log-stream:*"
       ]
+    },
+    {
+      "Sid": "AllowS3OperationsOnXosphereObjects",
+      "Effect": "Allow",
+      "Action": [
+        "s3:DeleteObject",
+        "s3:GetObject",
+        "s3:ListBucket",
+        "s3:PutObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::xosphere-*/*",
+        "arn:aws:s3:::xosphere-*",
+        "${aws_s3_bucket.instance_state_s3_bucket.arn}",
+        "${aws_s3_bucket.instance_state_s3_bucket.arn}/*"
+      ]
     }
   ]
 }
