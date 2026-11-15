@@ -2830,7 +2830,7 @@ resource "aws_lambda_function" "instance_orchestrator_budget_driver_lambda" {
   architectures = ["arm64"]
   timeout       = var.io_budget_driver_lambda_timeout
   tags          = var.tags
-  depends_on    = [aws_cloudwatch_log_group.instance_orchestrator_budget_driver_cloudwatch_log_group]
+  depends_on    = [aws_cloudwatch_log_group.instance_orchestrator_budget_driver_cloudwatch_log_group, aws_lambda_function.xosphere_instance_orchestrator_lambda] # after the orchestrator (ENG-2109)
 }
 
 resource "aws_lambda_permission" "instance_orchestrator_budget_driver_lambda_permission" {
