@@ -67,12 +67,6 @@ variable "terminator_reserved_concurrency" {
   }
 }
 
-variable "alarm_notification_topic_arn" {
-  description = "Optional SNS topic ARN that Instance Orchestrator's CloudWatch alarms (terminator dead-letter queue not empty, attacher events dropped) notify. Leave empty to create the alarms without actions. A topic encrypted with a customer managed KMS key must let CloudWatch use the key."
-  type        = string
-  default     = ""
-}
-
 variable "terminator_lambda_timeout" {
   description = "Lambda function execution timeout"
   default     = 900
