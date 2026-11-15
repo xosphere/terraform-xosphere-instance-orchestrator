@@ -71,6 +71,11 @@ variable "alarm_notification_topic_arn" {
   description = "Optional SNS topic ARN that Instance Orchestrator's CloudWatch alarms (terminator dead-letter queue not empty, attacher events dropped) notify. Leave empty to create the alarms without actions. A topic encrypted with a customer managed KMS key must let CloudWatch use the key."
   type        = string
   default     = ""
+
+  validation {
+    condition     = can(regex("^$|^arn:aws[a-z-]*:sns:[a-z0-9-]+:[0-9]{12}:[A-Za-z0-9_-]{1,256}(\\.fifo)?$", var.alarm_notification_topic_arn))
+    error_message = "The alarm_notification_topic_arn value must be empty or an SNS topic ARN (arn:aws:sns:<region>:<account>:<topic>)."
+  }
 }
 
 variable "terminator_lambda_timeout" {

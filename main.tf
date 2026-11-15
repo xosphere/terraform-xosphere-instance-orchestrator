@@ -1,5 +1,5 @@
 locals {
-  version                                         = "0.30.10"
+  version                                         = "0.31.2"
   api_token_arn                                   = (var.secretsmanager_arn_override == null) ? format("arn:aws:secretsmanager:%s:%s:secret:customer/%s", local.xo_account_region, var.xo_account_id, var.customer_id) : var.secretsmanager_arn_override
   api_token_pattern                               = (var.secretsmanager_arn_override == null) ? format("arn:aws:secretsmanager:%s:%s:secret:customer/%s-??????", local.xo_account_region, var.xo_account_id, var.customer_id) : var.secretsmanager_arn_override
   regions                                         = join(",", var.regions_enabled)
@@ -6071,6 +6071,7 @@ resource "aws_cloudwatch_metric_alarm" "instance_orchestrator_attacher_events_dr
   comparison_operator = "GreaterThanThreshold"
   treat_missing_data  = "notBreaching"
   alarm_actions       = var.alarm_notification_topic_arn == "" ? [] : [var.alarm_notification_topic_arn]
+  ok_actions          = var.alarm_notification_topic_arn == "" ? [] : [var.alarm_notification_topic_arn]
   tags                = var.tags
 }
 
