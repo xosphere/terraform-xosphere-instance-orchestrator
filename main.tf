@@ -778,7 +778,7 @@ resource "aws_lambda_function" "xosphere_terminator_lambda" {
   architectures = ["arm64"]
   timeout       = var.terminator_lambda_timeout
   tags          = var.tags
-  depends_on    = [aws_cloudwatch_log_group.xosphere_terminator_cloudwatch_log_group]
+  depends_on    = [aws_cloudwatch_log_group.xosphere_terminator_cloudwatch_log_group, aws_lambda_function.xosphere_instance_orchestrator_lambda] # after the orchestrator (ENG-2102)
 
   reserved_concurrent_executions = var.terminator_reserved_concurrency == 0 ? null : var.terminator_reserved_concurrency
 }
@@ -1203,7 +1203,7 @@ resource "aws_lambda_function" "xosphere_instance_orchestrator_lambda" {
       SQS_SNAPSHOT_QUEUE                 = aws_sqs_queue.instance_orchestrator_snapshot_queue.id
       ENABLE_CLOUDWATCH                  = var.enable_cloudwatch
       IO_BRIDGE_NAME                     = local.has_k8s_vpc_config ? aws_lambda_function.xosphere_io_bridge_lambda[0].id : "xosphere-io-bridge"
-      ATTACHER_NAME                      = aws_lambda_function.instance_orchestrator_attacher_lambda.function_name
+      ATTACHER_NAME                      = "xosphere-instance-orchestrator-attacher" # its fixed name: updated after this function (ENG-2102)
       K8S_VPC_ENABLED                    = local.has_k8s_vpc_config_string
       K8S_DRAIN_TIMEOUT_IN_MINS          = var.k8s_drain_timeout_in_mins
       K8S_POD_EVICTION_GRACE_PERIOD      = var.k8s_pod_eviction_grace_period
@@ -1714,7 +1714,7 @@ resource "aws_lambda_function" "xosphere_instance_orchestrator_launcher_lambda" 
   architectures                  = ["arm64"]
   timeout                        = var.io_launcher_lambda_timeout
   reserved_concurrent_executions = 20
-  depends_on                     = [aws_cloudwatch_log_group.instance_orchestrator_launcher_cloudwatch_log_group]
+  depends_on                     = [aws_cloudwatch_log_group.instance_orchestrator_launcher_cloudwatch_log_group, aws_lambda_function.xosphere_instance_orchestrator_lambda] # after the orchestrator (ENG-2102)
   tags                           = var.tags
 }
 
@@ -3179,7 +3179,7 @@ resource "aws_lambda_function" "instance_orchestrator_budget_lambda" {
   architectures = ["arm64"]
   timeout       = var.io_budget_lambda_timeout
   tags          = var.tags
-  depends_on    = [aws_cloudwatch_log_group.instance_orchestrator_budget_cloudwatch_log_group]
+  depends_on    = [aws_cloudwatch_log_group.instance_orchestrator_budget_cloudwatch_log_group, aws_lambda_function.xosphere_instance_orchestrator_lambda] # after the orchestrator (ENG-2102)
 }
 
 resource "aws_lambda_event_source_mapping" "instance_orchestrator_budget_lambda_sqs_trigger" {
@@ -5835,7 +5835,7 @@ resource "aws_lambda_function" "instance_orchestrator_attacher_lambda" {
   architectures = ["arm64"]
   timeout       = var.attacher_lambda_timeout
   tags          = var.tags
-  depends_on    = [aws_cloudwatch_log_group.instance_orchestrator_attacher_cloudwatch_log_group]
+  depends_on    = [aws_cloudwatch_log_group.instance_orchestrator_attacher_cloudwatch_log_group, aws_lambda_function.xosphere_instance_orchestrator_lambda] # after the orchestrator (ENG-2102)
 }
 
 resource "aws_iam_role" "instance_orchestrator_attacher_lambda_role" {
